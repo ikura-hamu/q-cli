@@ -92,5 +92,5 @@ func printVersion() {
 			v = i.Main.Version
 		}
 	}
-	fmt.Printf("q version v%s\n", v)
+	fmt.Printf("q version %s\n", v)
 }
