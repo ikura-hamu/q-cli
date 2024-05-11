@@ -72,6 +72,8 @@ func (cm *Command) SendWithInteractiveMode(options ...MessageOptionFunc) error {
 			return fmt.Errorf("failed to send message: %w", err)
 		}
 
+		fmt.Println()
+
 		count++
 	}
 
