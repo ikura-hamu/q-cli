@@ -8,7 +8,7 @@ DIR := ~/bin
 
 # Build target
 build:
-	$(GO) build -o $(BINARY) -ldflags "-s -w -X main.version=0.0.1" .
+	$(GO) build -o $(BINARY) -ldflags "-s -w" .
 
 install:
 	cp $(BINARY) $(DIR)
