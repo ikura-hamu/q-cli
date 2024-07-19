@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/ikura-hamu/q-cli/internal/conf"
 )
 
 type WebhookClient struct {
@@ -19,22 +17,12 @@ type WebhookClient struct {
 	webhookURL string
 }
 
-func NewWebhookClient(conf conf.ClientConfig) (*WebhookClient, error) {
-	secret, err := conf.GetWebhookSecret()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get webhook secret: %w", err)
-	}
-
+func NewWebhookClient(webhookID string, hostName string, secret string) (*WebhookClient, error) {
 	mac := hmac.New(sha1.New, []byte(secret))
 
 	client := http.DefaultClient
 
-	webhookID, err := conf.GetWebhookID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get webhook ID: %w", err)
-	}
-
-	webhookURL, err := url.JoinPath("https://q.trap.jp/api/v3/webhooks", webhookID)
+	webhookURL, err := url.JoinPath(hostName, "/api/v3/webhooks", webhookID)
 	if err != nil {
 		panic(err)
 	}
