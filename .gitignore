@@ -2,3 +2,4 @@ q
 .env
 
 dist/
+**/mock
