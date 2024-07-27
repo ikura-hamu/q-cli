@@ -3,3 +3,5 @@ q
 
 dist/
 **/mock
+
+.task
