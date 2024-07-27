@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"runtime/debug"
@@ -16,9 +17,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var (
+	cfgFile string
 
-var cl client.Client
+	cl client.Client
+)
+
+var (
+	ErrEmptyConfiguration = errors.New("some webhook configuration field(s) is empty")
+)
 
 func SetClient(c client.Client) {
 	cl = c
@@ -30,13 +37,21 @@ var rootCmd = &cobra.Command{
 	Short: "traQ Webhook CLI",
 	Long: `"q-cli" is a CLI tool for sending messages to traQ via webhook.
 It reads the configuration file and sends the message to the specified webhook.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		cl, err := webhook.NewWebhookClient(viper.GetString(configKeyWebhookID), viper.GetString(configKeyWebhookHost), viper.GetString(configKeyWebhookSecret))
+		if err != nil {
+			return fmt.Errorf("failed to create client: %w", err)
+		}
+		SetClient(cl)
+		return nil
+	},
 
 	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) {
+	// has an action associated with it
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if printVersion {
 			printVersionInfo()
-			return
+			return nil
 		}
 
 		conf := webhookConfig{
@@ -46,8 +61,7 @@ It reads the configuration file and sends the message to the specified webhook.`
 		}
 
 		if conf.host == "" || conf.id == "" || conf.secret == "" {
-			returnWithError("some webhook configuration field(s) is empty\n")
-			return
+			return ErrEmptyConfiguration
 		}
 		var message string
 
@@ -60,7 +74,7 @@ It reads the configuration file and sends the message to the specified webhook.`
 				text := sc.Text()
 				sb.WriteString(text + "\n")
 			}
-			message = sb.String()
+			message = strings.TrimSpace(sb.String())
 		}
 
 		if withCodeBlock {
@@ -72,13 +86,13 @@ It reads the configuration file and sends the message to the specified webhook.`
 			err := cl.SendMessage(message)
 			// err := makeWebhookRequest(conf, message)
 			if err != nil {
-				returnWithError("failed to send message: %v\n", err)
+				return fmt.Errorf("failed to send message: %w", err)
 			}
 		} else {
 			panic("client is nil")
 		}
 
-		return
+		return nil
 	},
 }
 
@@ -106,6 +120,7 @@ type webhookConfig struct {
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
+		printError("%v", err)
 		os.Exit(1)
 	}
 }
@@ -124,7 +139,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&printVersion, "version", "v", false, "Print version information and quit")
 
 	rootCmd.Flags().BoolVarP(&withCodeBlock, "code", "c", false, "Send message with code block")
-	rootCmd.Flags().StringVarP(&codeBlockLang, "lang", "l", "text", "Code block language")
+	rootCmd.Flags().StringVarP(&codeBlockLang, "lang", "l", "", "Code block language")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -152,11 +167,6 @@ func initConfig() {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 
-	cl, err := webhook.NewWebhookClient(viper.GetString(configKeyWebhookID), viper.GetString(configKeyWebhookHost), viper.GetString(configKeyWebhookSecret))
-	if err != nil {
-		returnWithError("failed to create webhook client: %v\n", err)
-	}
-	SetClient(cl)
 }
 
 func printVersionInfo() {

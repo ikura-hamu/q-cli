@@ -5,7 +5,6 @@ import (
 	"os"
 )
 
-func returnWithError(message string, args ...any) {
-	fmt.Fprintf(os.Stderr, message, args...)
-	os.Exit(1)
+func printError(message string, args ...any) {
+	fmt.Fprintf(os.Stderr, "q-cli error: "+message, args...)
 }
