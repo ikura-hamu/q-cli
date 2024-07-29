@@ -23,7 +23,6 @@ func TestSendMessage(t *testing.T) {
 		path = req.URL.Path
 
 		res.WriteHeader(http.StatusNoContent)
-		return
 	}))
 	defer ts.Close()
 
