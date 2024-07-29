@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/ikura-hamu/q-cli/internal/client"
 )
 
 type WebhookClient struct {
@@ -36,6 +38,10 @@ func NewWebhookClient(webhookID string, hostName string, secret string) (*Webhoo
 }
 
 func (c *WebhookClient) SendMessage(message string) error {
+	if message == "" {
+		return client.ErrEmptyMessage
+	}
+
 	req, err := http.NewRequest(http.MethodPost, c.webhookURL, strings.NewReader(message))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
