@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/client/mock"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -13,28 +14,40 @@ import (
 )
 
 func TestRoot(t *testing.T) {
+	type webhookConfig struct {
+		webhookHost   string
+		webhookID     string
+		webhookSecret string
+	}
+	defaultWebhookConfig := webhookConfig{"http://example.com", "test", "test"}
+
+	type input struct {
+		codeBlock     bool
+		codeBlockLang string
+		stdin         string
+		args          []string
+	}
+
 	test := map[string]struct {
-		webhookHost     string
-		webhookID       string
-		webhookSecret   string
-		codeBlock       bool
-		codeBlockLang   string
-		stdin           string
-		args            []string
+		webhookConfig
+		input
+		SendMessageErr  error
 		expectedMessage string
+		isError         bool
 	}{
-		"ok": {"http://localhost:8080", "test", "test", false, "", "", []string{"test"}, "test"},
-		"コードブロックがあっても問題なし":      {"http://localhost:8080", "test", "test", true, "", "", []string{"print('Hello, World!')"}, "```\nprint('Hello, World!')\n```"},
-		"コードブロックと言語指定があっても問題なし": {"http://localhost:8080", "test", "test", true, "python", "", []string{"print('Hello, World!')"}, "```python\nprint('Hello, World!')\n```"},
-		"メッセージがない場合は標準入力から":     {"http://localhost:8080", "test", "test", false, "", "stdin test", []string{}, "stdin test"},
-		"メッセージがあったら標準入力は無視":     {"http://localhost:8080", "test", "test", false, "", "stdin test", []string{"test"}, "test"},
+		"ok": {defaultWebhookConfig, input{false, "", "", []string{"test"}}, nil, "test", false},
+		"コードブロックがあっても問題なし":               {defaultWebhookConfig, input{true, "", "", []string{"print('Hello, World!')"}}, nil, "```\nprint('Hello, World!')\n```", false},
+		"コードブロックと言語指定があっても問題なし":          {defaultWebhookConfig, input{true, "python", "", []string{"print('Hello, World!')"}}, nil, "```python\nprint('Hello, World!')\n```", false},
+		"メッセージがない場合は標準入力から":              {defaultWebhookConfig, input{false, "", "stdin test", nil}, nil, "stdin test", false},
+		"メッセージがあったら標準入力は無視":              {defaultWebhookConfig, input{false, "", "stdin test", []string{"test"}}, nil, "test", false},
+		"SendMessageがErrEmptyMessageを返す": {defaultWebhookConfig, input{false, "", "", nil}, client.ErrEmptyMessage, "", true},
 	}
 
 	for description, tt := range test {
 		t.Run(description, func(t *testing.T) {
-			viper.Set("webhook_host", tt.webhookHost)
-			viper.Set("webhook_id", tt.webhookID)
-			viper.Set("webhook_secret", tt.webhookSecret)
+			viper.Set("webhook_host", tt.webhookConfig.webhookHost)
+			viper.Set("webhook_id", tt.webhookConfig.webhookID)
+			viper.Set("webhook_secret", tt.webhookConfig.webhookSecret)
 
 			withCodeBlock = tt.codeBlock
 			codeBlockLang = tt.codeBlockLang
@@ -55,16 +68,22 @@ func TestRoot(t *testing.T) {
 
 			mockClient := &mock.ClientMock{
 				SendMessageFunc: func(message string) error {
-					return nil
+					return tt.SendMessageErr
 				},
 			}
 
 			SetClient(mockClient)
 
-			rootCmd.RunE(rootCmd, tt.args)
+			cmdErr := rootCmd.RunE(rootCmd, tt.args)
 
 			assert.Len(t, mockClient.SendMessageCalls(), 1)
 			assert.Equal(t, tt.expectedMessage, mockClient.SendMessageCalls()[0].Message)
+
+			if tt.isError {
+				assert.Error(t, cmdErr)
+			} else {
+				assert.NoError(t, cmdErr)
+			}
 		})
 	}
 }
