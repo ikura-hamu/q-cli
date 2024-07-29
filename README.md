@@ -54,39 +54,34 @@ unzip q-cli_{{OS}}_{{architecture}}.zip
 
 #### 環境変数の場合
 
+`Q_WEBHOOK_HOST`: traQのドメイン
 `Q_WEBHOOK_ID`: traQのWebhook ID
 `Q_WEBHOOK_SECRET`: traQのWebhook シークレット
 
 #### 設定ファイルを使う場合
 
-以下のような`config.json`を用意します。
+以下のような`.q-cli.yml`を用意します。
 
-```json:config.json
-{
-  "webhook_id": "{{traQのWebhook ID}}",
-  "webhook_secret": "{{traQのWebhookシークレット}}"
-}
+```json:.q-cli.yml
+webhook_host: "{{traQのドメイン}}"
+webhook_id: "{{traQのWebhook ID}}"
+webhook_secret: "{{traQのWebhookシークレット}}"
 ```
 
-それを適切なディレクトリに配置します。以下を参考にして配置してください。(Goの`os.UserConfigDir()`を使用しています。)
-
-> UserConfigDir returns the default root directory to use for user-specific configuration data. Users should create their own application-specific subdirectory within this one and use that.
->
-> On Unix systems, it returns \$XDG_CONFIG_HOME as specified by https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html if non-empty, else \$HOME/.config. On Darwin, it returns \$HOME/Library/Application Support. On Windows, it returns %AppData%. On Plan 9, it returns $home/lib.
->
-> If the location cannot be determined (for example, $HOME is not defined), then it will return an error.
+このファイルをホームディレクトリに配置します。
 
 ## Usage
 
 ```txt
-Usage of q:
-q [option] [message]
-  -c string
-        Send message as code block. Specify the language name (e.g. go, python, shell)
-  -h    Print this message
-  -i    Interactive mode
-  -s    Accept input from stdin
-  -v    Print version
+Usage:
+  q [message] [flags]
+
+Flags:
+  -c, --code            Send message with code block
+      --config string   config file (default is $HOME/.q-cli.yaml)
+  -h, --help            help for q
+  -l, --lang string     Code block language
+  -v, --version         Print version information and quit
 ```
 
 ```sh
@@ -106,55 +101,51 @@ traQに「Hello World」と投稿されます。
 ---
 
 ```sh
-q -i
+q
 ```
-
-```txt
-q [1]: 1行目
-q [1]: 2行目
-q [1]: 
-q [2]:
-```
-
-`-i` オプションを使用すると、ターミナルのように連続して、また、複数行のメッセージを送信できます(interactive mode)。改行では送信されず、`Ctrl-D`を入力すると送信されます。この例では、
 
 ```txt
 1行目
 2行目
+
 ```
 
-のようになります。
+メッセージが何もない場合は、標準入力からテキストを受け取り、投稿します。`EOF`(`Ctrl-D`)を受け取るまで投稿を待ちます。
 
-また、何も入力されていない状態で`Ctrl-D`を入力するとinteractive modeを抜けられます。
+以下のようにしてファイルの中身を投稿できます。
+
+```sh
+q < a.txt
+```
 
 ---
 
 ```sh
-echo foo | q -s
-```
-
-```txt
-foo
-```
-
-`-s`オプションを使用すると、標準入力から値を受け取り、それをそのままメッセージとして投稿できます。機密情報を間違って投稿しないよう気を付けてください。
-
----
-
-```sh
-q -c go package main
+q -c text
 ```
 
 ````md
-```go
-package main
+```
+text
 ```
 ````
 
-`-c`オプションを使用すると、コードブロックとして投稿できます。オプションで指定した値が最初の` ``` `の後に追加され、traQ上で適切なシンタックスハイライトが付きます。値は必ず指定しなくてはいけません。
+`--code`(`-c`)オプションを使用すると、コードブロックとして投稿できます。
 
-上の`-s`オプションと組み合わせるとファイルの中身をきれいにtraQに投稿できます。
+`--lang`(`-l`)オプションで指定した値が最初の` ``` `の後に追加され、traQ上で適切なシンタックスハイライトが付きます。
 
 ```sh
-cat main.go | q -s -c go
+q -c -l go < main.go
 ```
+
+````txt
+```go
+package main
+
+import "fmt"
+
+func main() {
+  fmt.Println("Hello, world")
+}
+```
+````
