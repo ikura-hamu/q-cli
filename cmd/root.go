@@ -33,7 +33,7 @@ func SetClient(c client.Client) {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "q-cli",
+	Use:   "q [message]",
 	Short: "traQ Webhook CLI",
 	Long: `"q-cli" is a CLI tool for sending messages to traQ via webhook.
 It reads the configuration file and sends the message to the specified webhook.`,
@@ -82,9 +82,10 @@ It reads the configuration file and sends the message to the specified webhook.`
 		}
 
 		if cl != nil {
-
 			err := cl.SendMessage(message)
-			// err := makeWebhookRequest(conf, message)
+			if errors.Is(err, client.ErrEmptyMessage) {
+				return errors.New("empty message is not allowed")
+			}
 			if err != nil {
 				return fmt.Errorf("failed to send message: %w", err)
 			}
@@ -120,7 +121,6 @@ type webhookConfig struct {
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		printError("%v", err)
 		os.Exit(1)
 	}
 }
