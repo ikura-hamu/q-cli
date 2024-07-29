@@ -163,9 +163,10 @@ func initConfig() {
 	viper.SetEnvPrefix("q")
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
+	// if err := viper.ReadInConfig(); err == nil {
+	// fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	// }
+	viper.ReadInConfig()
 
 }
 
