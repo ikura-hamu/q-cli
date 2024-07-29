@@ -7,7 +7,7 @@ silent: true
 tasks:
   test:
     cmds:
-      - go test ./... -v -race
+      - go test -v -race ./...
 
   generate:
     cmds:
