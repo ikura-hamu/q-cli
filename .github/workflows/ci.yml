@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
+      - name: Generate
+        run: go generate ./...
+
       - name: Test
         run: go test -v -race ./...
 
@@ -47,6 +50,12 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: ./go.mod
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Generate
+        run: go generate ./...
 
       - name: Lint
         uses: golangci/golangci-lint-action@v6
