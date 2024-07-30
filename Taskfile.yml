@@ -1,0 +1,24 @@
+# https://taskfile.dev
+
+version: "3"
+
+silent: true
+
+tasks:
+  test:
+    cmds:
+      - go test -v -race ./...
+
+  generate:
+    cmds:
+      - go generate ./...
+    aliases:
+      - gen
+    generates:
+      - ./**/mock/*.go
+    sources:
+      - ./internal/*/*.go
+
+  build:
+    cmds:
+      - go build -o ./bin/ -ldflags "-s -w" .
