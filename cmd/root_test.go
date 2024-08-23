@@ -36,11 +36,12 @@ func TestRoot(t *testing.T) {
 		isError         bool
 	}{
 		"ok": {defaultWebhookConfig, input{false, "", "", []string{"test"}}, nil, "test", false},
-		"コードブロックがあっても問題なし":               {defaultWebhookConfig, input{true, "", "", []string{"print('Hello, World!')"}}, nil, "```\nprint('Hello, World!')\n```", false},
-		"コードブロックと言語指定があっても問題なし":          {defaultWebhookConfig, input{true, "python", "", []string{"print('Hello, World!')"}}, nil, "```python\nprint('Hello, World!')\n```", false},
-		"メッセージがない場合は標準入力から":              {defaultWebhookConfig, input{false, "", "stdin test", nil}, nil, "stdin test", false},
-		"メッセージがあったら標準入力は無視":              {defaultWebhookConfig, input{false, "", "stdin test", []string{"test"}}, nil, "test", false},
-		"SendMessageがErrEmptyMessageを返す": {defaultWebhookConfig, input{false, "", "", nil}, client.ErrEmptyMessage, "", true},
+		"コードブロックがあっても問題なし":                         {defaultWebhookConfig, input{true, "", "", []string{"print('Hello, World!')"}}, nil, "```\nprint('Hello, World!')\n```", false},
+		"コードブロックと言語指定があっても問題なし":                    {defaultWebhookConfig, input{true, "python", "", []string{"print('Hello, World!')"}}, nil, "```python\nprint('Hello, World!')\n```", false},
+		"メッセージがない場合は標準入力から":                        {defaultWebhookConfig, input{false, "", "stdin test", nil}, nil, "stdin test", false},
+		"メッセージがあったら標準入力は無視":                        {defaultWebhookConfig, input{false, "", "stdin test", []string{"test"}}, nil, "test", false},
+		"SendMessageがErrEmptyMessageを返す":           {defaultWebhookConfig, input{false, "", "", nil}, client.ErrEmptyMessage, "", true},
+		"メッセージにコードブロックが含まれていて、そこにコードブロックを付けても問題なし": {defaultWebhookConfig, input{true, "", "```python\nprint('Hello, World!')\n```", nil}, nil, "````\n```python\nprint('Hello, World!')\n```\n````", false},
 	}
 
 	for description, tt := range test {
