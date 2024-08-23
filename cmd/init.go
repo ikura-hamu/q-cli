@@ -31,9 +31,7 @@ var initCmd = &cobra.Command{
 		}
 
 		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-		if err != nil {
-			panic(err)
-		}
+		cobra.CheckErr(err)
 		defer func() {
 			err := term.Restore(int(os.Stdin.Fd()), oldState)
 			cobra.CheckErr(err)
