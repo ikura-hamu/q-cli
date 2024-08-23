@@ -34,7 +34,10 @@ var initCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		defer term.Restore(int(os.Stdin.Fd()), oldState)
+		defer func() {
+			err := term.Restore(int(os.Stdin.Fd()), oldState)
+			cobra.CheckErr(err)
+		}()
 
 		prompts := []struct {
 			prompt       string
@@ -84,8 +87,6 @@ var initCmd = &cobra.Command{
 			err = viper.SafeWriteConfig()
 		}
 		cobra.CheckErr(err)
-
-		return
 	},
 }
 
