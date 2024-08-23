@@ -78,7 +78,20 @@ It reads the configuration file and sends the message to the specified webhook.`
 		}
 
 		if withCodeBlock {
-			message = fmt.Sprintf("```%s\n%s\n```", codeBlockLang, message)
+			leadingBackQuoteCountMax := 0
+
+			for _, line := range strings.Split(message, "\n") {
+				if !strings.HasPrefix(line, "```") {
+					continue
+				}
+				noLeadingBackQuoteLine := strings.TrimLeft(line, "`")
+				leadingBackQuoteCount := len(line) - len(noLeadingBackQuoteLine)
+				leadingBackQuoteCountMax = max(leadingBackQuoteCountMax, leadingBackQuoteCount)
+			}
+
+			codeBlockBackQuote := strings.Repeat("`", max(leadingBackQuoteCountMax+1, 3))
+
+			message = fmt.Sprintf("%s%s\n%s\n%s", codeBlockBackQuote, codeBlockLang, message, codeBlockBackQuote)
 		}
 
 		if cl != nil {
