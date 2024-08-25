@@ -21,7 +21,7 @@ builds:
       - linux
       - windows
       - darwin
-    ldflags: -s -w -X main.version={{.Version}}
+    ldflags: -s -w -X github.com/ikura-hamu/q-cli/cmd.version={{.Version}}
     binary: q
 
 archives:
