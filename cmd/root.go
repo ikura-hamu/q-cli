@@ -33,8 +33,9 @@ func SetClient(c client.Client) {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "q [message]",
-	Short: "traQ Webhook CLI",
+	TraverseChildren: true,
+	Use:              "q [message]",
+	Short:            "traQ Webhook CLI",
 	Long: `"q-cli" is a CLI tool for sending messages to traQ via webhook.
 It reads the configuration file and sends the message to the specified webhook.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
