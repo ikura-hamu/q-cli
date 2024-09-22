@@ -26,7 +26,7 @@ var (
 
 var (
 	ErrEmptyConfiguration = errors.New("some webhook configuration field(s) is empty")
-	ErrChannelNotFound    = errors.New("channel is not found")
+	ErrChannelNotFound    = errors.New("channel name is not in the configuration")
 )
 
 func SetClient(c client.Client) {
@@ -113,7 +113,7 @@ It reads the configuration file and sends the message to the specified webhook.`
 			var ok bool
 			channelID, ok = conf.channels[channelName]
 			if !ok {
-				return fmt.Errorf("channel %s is not found: %w", channelName, ErrChannelNotFound)
+				return fmt.Errorf("channel '%s' is not found: %w", channelName, ErrChannelNotFound)
 			}
 		}
 
