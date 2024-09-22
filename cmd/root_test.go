@@ -29,22 +29,71 @@ func TestRoot(t *testing.T) {
 	test := map[string]struct {
 		webhookConfig
 		input
-		SendMessageErr    error
-		expectedMessage   string
-		NoCallSendMessage bool
-		expectedChannelID uuid.UUID
-		isError           bool
-		expectedErr       error
+		SendMessageErr      error
+		expectedMessage     string
+		SkipCallSendMessage bool
+		expectedChannelID   uuid.UUID
+		isError             bool
+		expectedErr         error
 	}{
-		"ok": {defaultWebhookConfig, input{false, "", "", "", []string{"test"}}, nil, "test", false, uuid.Nil, false, nil},
-		"コードブロックがあっても問題なし":                         {defaultWebhookConfig, input{true, "", "", "", []string{"print('Hello, World!')"}}, nil, "```\nprint('Hello, World!')\n```", false, uuid.Nil, false, nil},
-		"コードブロックと言語指定があっても問題なし":                    {defaultWebhookConfig, input{true, "python", "", "", []string{"print('Hello, World!')"}}, nil, "```python\nprint('Hello, World!')\n```", false, uuid.Nil, false, nil},
-		"メッセージがない場合は標準入力から":                        {defaultWebhookConfig, input{false, "", "", "stdin test", nil}, nil, "stdin test", false, uuid.Nil, false, nil},
-		"メッセージがあったら標準入力は無視":                        {defaultWebhookConfig, input{false, "", "", "stdin test", []string{"test"}}, nil, "test", false, uuid.Nil, false, nil},
-		"SendMessageがErrEmptyMessageを返す":           {defaultWebhookConfig, input{false, "", "", "", nil}, client.ErrEmptyMessage, "", false, uuid.Nil, true, nil},
-		"メッセージにコードブロックが含まれていて、そこにコードブロックを付けても問題なし": {defaultWebhookConfig, input{true, "", "", "```python\nprint('Hello, World!')\n```", nil}, nil, "````\n```python\nprint('Hello, World!')\n```\n````", false, uuid.Nil, false, nil},
-		"チャンネル名を指定しても問題なし":                         {defaultWebhookConfig, input{false, "", "channel", "test", nil}, nil, "test", false, channelID, false, nil},
-		"チャンネル名が存在しない場合はエラー":                       {defaultWebhookConfig, input{false, "", "notfound", "test", nil}, nil, "", true, uuid.Nil, true, ErrChannelNotFound},
+		"ok": {
+			webhookConfig:     defaultWebhookConfig,
+			input:             input{false, "", "", "", []string{"test"}},
+			expectedMessage:   "test",
+			expectedChannelID: uuid.Nil,
+		},
+		"コードブロックがあっても問題なし": {
+			webhookConfig:     defaultWebhookConfig,
+			input:             input{true, "", "", "", []string{"print('Hello, World!')"}},
+			expectedMessage:   "```\nprint('Hello, World!')\n```",
+			expectedChannelID: uuid.Nil,
+		},
+		"コードブロックと言語指定があっても問題なし": {
+			webhookConfig:     defaultWebhookConfig,
+			input:             input{true, "python", "", "", []string{"print('Hello, World!')"}},
+			expectedMessage:   "```python\nprint('Hello, World!')\n```",
+			expectedChannelID: uuid.Nil,
+		},
+		"メッセージがない場合は標準入力から": {
+			webhookConfig:     defaultWebhookConfig,
+			input:             input{false, "", "", "stdin test", nil},
+			expectedMessage:   "stdin test",
+			expectedChannelID: uuid.Nil,
+		},
+		"メッセージがあったら標準入力は無視": {
+			webhookConfig:     defaultWebhookConfig,
+			input:             input{false, "", "", "stdin test", []string{"test"}},
+			expectedMessage:   "test",
+			expectedChannelID: uuid.Nil,
+		},
+		"SendMessageがErrEmptyMessageを返す": {
+			webhookConfig:     defaultWebhookConfig,
+			input:             input{false, "", "", "", nil},
+			SendMessageErr:    client.ErrEmptyMessage,
+			expectedChannelID: uuid.Nil,
+			isError:           true,
+		},
+		"メッセージにコードブロックが含まれていて、そこにコードブロックを付けても問題なし": {
+			webhookConfig:     defaultWebhookConfig,
+			input:             input{true, "", "", "```python\nprint('Hello, World!')\n```", nil},
+			expectedMessage:   "````\n```python\nprint('Hello, World!')\n```\n````",
+			expectedChannelID: uuid.Nil,
+		},
+		"チャンネル名を指定しても問題なし": {
+			webhookConfig:     defaultWebhookConfig,
+			input:             input{false, "", "channel", "test", nil},
+			expectedMessage:   "test",
+			expectedChannelID: channelID,
+		},
+		"チャンネル名が存在しない場合はエラー": {
+			webhookConfig:       defaultWebhookConfig,
+			input:               input{false, "", "notfound", "test", nil},
+			SendMessageErr:      nil,
+			SkipCallSendMessage: true,
+			expectedChannelID:   uuid.Nil,
+			isError:             true,
+			expectedErr:         ErrChannelNotFound,
+		},
 	}
 
 	for description, tt := range test {
@@ -95,7 +144,7 @@ func TestRoot(t *testing.T) {
 
 			cmdErr := rootCmd.RunE(rootCmd, tt.args)
 
-			if tt.NoCallSendMessage {
+			if tt.SkipCallSendMessage {
 				assert.Len(t, mockClient.SendMessageCalls(), 0)
 			} else {
 
