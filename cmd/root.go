@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/client/webhook"
 	"github.com/spf13/cobra"
@@ -25,6 +26,7 @@ var (
 
 var (
 	ErrEmptyConfiguration = errors.New("some webhook configuration field(s) is empty")
+	ErrChannelNotFound    = errors.New("channel name is not in the configuration")
 )
 
 func SetClient(c client.Client) {
@@ -55,10 +57,21 @@ It reads the configuration file and sends the message to the specified webhook.`
 			return nil
 		}
 
+		channelsStr := viper.GetStringMapString(configKeyChannels)
+		channels := make(map[string]uuid.UUID, len(channelsStr))
+		for k, v := range channelsStr {
+			id, err := uuid.Parse(v)
+			if err != nil {
+				return fmt.Errorf("failed to parse channel ID: %w", err)
+			}
+			channels[k] = id
+		}
+
 		conf := webhookConfig{
-			host:   viper.GetString(configKeyWebhookHost),
-			id:     viper.GetString(configKeyWebhookID),
-			secret: viper.GetString(configKeyWebhookSecret),
+			host:     viper.GetString(configKeyWebhookHost),
+			id:       viper.GetString(configKeyWebhookID),
+			secret:   viper.GetString(configKeyWebhookSecret),
+			channels: channels,
 		}
 
 		if conf.host == "" || conf.id == "" || conf.secret == "" {
@@ -95,8 +108,17 @@ It reads the configuration file and sends the message to the specified webhook.`
 			message = fmt.Sprintf("%s%s\n%s\n%s", codeBlockBackQuote, codeBlockLang, message, codeBlockBackQuote)
 		}
 
+		channelID := uuid.Nil
+		if channelName != "" {
+			var ok bool
+			channelID, ok = conf.channels[channelName]
+			if !ok {
+				return fmt.Errorf("channel '%s' is not found: %w", channelName, ErrChannelNotFound)
+			}
+		}
+
 		if cl != nil {
-			err := cl.SendMessage(message)
+			err := cl.SendMessage(message, channelID)
 			if errors.Is(err, client.ErrEmptyMessage) {
 				return errors.New("empty message is not allowed")
 			}
@@ -115,19 +137,23 @@ var (
 	printVersion  bool
 	withCodeBlock bool
 	codeBlockLang string
-	version       string
+	channelName   string
+
+	version string
 )
 
 const (
 	configKeyWebhookHost   = "webhook_host"
 	configKeyWebhookID     = "webhook_id"
 	configKeyWebhookSecret = "webhook_secret"
+	configKeyChannels      = "channels"
 )
 
 type webhookConfig struct {
-	host   string
-	id     string
-	secret string
+	host     string
+	id       string
+	secret   string
+	channels map[string]uuid.UUID
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -154,6 +180,7 @@ func init() {
 
 	rootCmd.Flags().BoolVarP(&withCodeBlock, "code", "c", false, "Send message with code block")
 	rootCmd.Flags().StringVarP(&codeBlockLang, "lang", "l", "", "Code block language")
+	rootCmd.Flags().StringVarP(&channelName, "channel", "C", "", "Channel name")
 }
 
 // initConfig reads in config file and ENV variables if set.
