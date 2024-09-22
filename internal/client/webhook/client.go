@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
 )
 
@@ -37,7 +38,7 @@ func NewWebhookClient(webhookID string, hostName string, secret string) (*Webhoo
 	}, nil
 }
 
-func (c *WebhookClient) SendMessage(message string) error {
+func (c *WebhookClient) SendMessage(message string, channelID uuid.UUID) error {
 	if message == "" {
 		return client.ErrEmptyMessage
 	}
@@ -48,6 +49,10 @@ func (c *WebhookClient) SendMessage(message string) error {
 	}
 
 	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
+
+	if channelID != uuid.Nil {
+		req.Header.Set("X-TRAQ-Channel-ID", channelID.String())
+	}
 
 	c.mac.Reset()
 	_, err = c.mac.Write([]byte(message))
