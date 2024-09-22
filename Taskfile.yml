@@ -19,6 +19,11 @@ tasks:
     sources:
       - ./internal/*/*.go
 
+  docs:
+    cmds:
+      - go run bin/docs/main.go -version {{ .CLI_ARGS }}
+    desc: Generate docs
+
   build:
     cmds:
       - go build -o ./bin/ -ldflags "-s -w" .

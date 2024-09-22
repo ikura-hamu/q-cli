@@ -18,7 +18,7 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize the configuration file",
-	Long:  `This command initializes the configuration file of q-cli interactively.`,
+	Long:  `initコマンドは、設定ファイルの値を対話形式で設定することができます。`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if initForce {
 			fmt.Printf("Overwriting the existing configuration file: %s\n", cmp.Or(viper.ConfigFileUsed(), "(config file not found)"))
@@ -104,5 +104,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// initCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	initCmd.Flags().BoolVarP(&initForce, "force", "f", false, "If provided, overwrite the existing configuration file")
+	initCmd.Flags().BoolVarP(&initForce, "force", "f", false, "既存の設定ファイルを上書きします")
 }

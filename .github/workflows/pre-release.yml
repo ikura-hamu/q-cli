@@ -1,0 +1,34 @@
+name: "Pre-release check"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: "New version (ex: v1.2.3)"
+
+jobs:
+  check_docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ./go.mod
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Generate doc
+        run: go run bin/docs/main.go -version ${{ github.event.inputs.version }}
+
+      - name: Check doc diff
+        shell: bash
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            exit 1
+          fi

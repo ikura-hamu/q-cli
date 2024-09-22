@@ -40,9 +40,12 @@ var Command = rootCmd
 var rootCmd = &cobra.Command{
 	TraverseChildren: true,
 	Use:              "q [message]",
+	Example:          "q print(\"Hello, world!\") -c -l py",
 	Short:            "traQ Webhook CLI",
-	Long: `"q-cli" is a CLI tool for sending messages to traQ via webhook.
-It reads the configuration file and sends the message to the specified webhook.`,
+	Long: `"q-cli" は、traQにWebhookを使ってメッセージを送信するためのCLIツールです。設定に基づいてWebhookを送信します。
+設定は設定ファイルに記述するか、環境変数で指定することができます。
+メッセージは標準入力からも受け取ることができます。
+設定ファイルの場所は、何も指定しない場合、$HOME/.q-cli.yaml です。`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		cl, err := webhook.NewWebhookClient(viper.GetString(configKeyWebhookID), viper.GetString(configKeyWebhookHost), viper.GetString(configKeyWebhookSecret))
 		if err != nil {
@@ -185,16 +188,17 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.q-cli.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "設定ファイルの場所を指定します。 (デフォルトは $HOME/.q-cli.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolVarP(&printVersion, "version", "v", false, "Print version information and quit")
 
 	var rootFlagsData rootFlags
-	rootCmd.Flags().BoolVarP(&rootFlagsData.codeBlock, "code", "c", false, "Send message with code block")
-	rootCmd.Flags().StringVarP(&rootFlagsData.codeBlockLang, "lang", "l", "", "Code block language")
-	rootCmd.Flags().StringVarP(&rootFlagsData.channelName, "channel", "C", "", "Channel name")
+	rootCmd.Flags().BoolVarP(&rootFlagsData.codeBlock, "code", "c", false, "コードブロック付きでメッセージを送信します。")
+	rootCmd.Flags().StringVarP(&rootFlagsData.codeBlockLang, "lang", "l", "", "コードブロックの言語を指定します。")
+	rootCmd.Flags().StringVarP(&rootFlagsData.channelName, "channel", "C", "", `チャンネル名を指定して、デフォルト以外のチャンネルにメッセージを送信します。
+チャンネル名は設定ファイルの channels に記述されたキーを指定します。`)
 
 	ctx := context.WithValue(context.Background(), rootFlagsCtxKey{}, &rootFlagsData)
 	rootCmd.SetContext(ctx)
