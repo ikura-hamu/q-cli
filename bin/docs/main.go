@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"slices"
 	"text/template"
 
 	"github.com/ikura-hamu/q-cli/cmd"
@@ -32,13 +33,29 @@ func main() {
 		log.Fatalf("version must be in the format v1.2.3")
 	}
 
+	docsDirEntries, err := os.ReadDir(docsDir)
+	if err != nil {
+		log.Fatalf("failed to read docs dir: %v", err)
+	}
+
+	oldVersions := make([]string, 0, len(docsDirEntries))
+
+	for _, entry := range docsDirEntries {
+		if entry.IsDir() && entry.Name() != version {
+			oldVersions = append(oldVersions, entry.Name())
+		}
+	}
+
+	slices.Sort(oldVersions)
+
 	values := map[string]any{
-		"version": version,
+		"version":     version,
+		"oldVersions": oldVersions,
 	}
 
 	versionDir := path.Join(docsDir, version)
 
-	err := os.MkdirAll(versionDir, 0755)
+	err = os.MkdirAll(versionDir, 0755)
 	if err != nil {
 		log.Fatalf("failed to create version directory: %v", err)
 	}
