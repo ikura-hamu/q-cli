@@ -85,26 +85,27 @@ func generateFromTemplate(entry fs.DirEntry, versionDir string, values map[strin
 	if entry.IsDir() {
 		return
 	}
-
 	fileName := entry.Name()
 
-	tmp, err := template.New(fileName).ParseFiles(path.Join("bin/docs/templates", fileName))
+	tmp, err := template.New(fileName).ParseFS(templateDir, path.Join("templates", fileName))
 	if err != nil {
 		log.Fatalf("failed to parse index template: %v", err)
 	}
 
-	outputFile, err := os.Create(path.Join(docsDir, fileName))
+	outputFilePath := path.Join(docsDir, fileName)
+	outputFile, err := os.Create(outputFilePath)
 	if err != nil {
-		log.Fatalf("failed to open index.md: %v", err)
+		log.Fatalf("failed to open %s: %v", outputFilePath, err)
 	}
 	defer outputFile.Close()
 	if err := tmp.Execute(outputFile, values); err != nil {
 		log.Fatalf("failed to execute template: %v", err)
 	}
 
-	outputVersionFile, err := os.Create(path.Join(versionDir, fileName))
+	outputVersionFilePath := path.Join(versionDir, fileName)
+	outputVersionFile, err := os.Create(outputVersionFilePath)
 	if err != nil {
-		log.Fatalf("failed to open index.md: %v", err)
+		log.Fatalf("failed to open %s: %v", outputVersionFilePath, err)
 	}
 	defer outputVersionFile.Close()
 	if err := tmp.Execute(outputVersionFile, values); err != nil {
