@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/client/mock"
 	"github.com/spf13/viper"
@@ -68,7 +69,7 @@ func TestRoot(t *testing.T) {
 			w.Close()
 
 			mockClient := &mock.ClientMock{
-				SendMessageFunc: func(message string) error {
+				SendMessageFunc: func(message string, channelID uuid.UUID) error {
 					return tt.SendMessageErr
 				},
 			}
@@ -111,7 +112,7 @@ func TestRoot_NoSendMessage(t *testing.T) {
 			viper.Set("webhook_secret", tt.webhookSecret)
 
 			mockClient := &mock.ClientMock{
-				SendMessageFunc: func(message string) error {
+				SendMessageFunc: func(message string, channelID uuid.UUID) error {
 					return nil
 				},
 			}

@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/client/webhook"
 	"github.com/spf13/cobra"
@@ -96,7 +97,7 @@ It reads the configuration file and sends the message to the specified webhook.`
 		}
 
 		if cl != nil {
-			err := cl.SendMessage(message)
+			err := cl.SendMessage(message, uuid.Nil)
 			if errors.Is(err, client.ErrEmptyMessage) {
 				return errors.New("empty message is not allowed")
 			}
