@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -57,6 +58,12 @@ It reads the configuration file and sends the message to the specified webhook.`
 			return nil
 		}
 
+		cmdCtx := cmd.Context()
+		rootFlagsData, ok := cmdCtx.Value(rootFlagsCtxKey{}).(*rootFlags)
+		if !ok {
+			return errors.New("failed to get root options")
+		}
+
 		channelsStr := viper.GetStringMapString(configKeyChannels)
 		channels := make(map[string]uuid.UUID, len(channelsStr))
 		for k, v := range channelsStr {
@@ -91,7 +98,7 @@ It reads the configuration file and sends the message to the specified webhook.`
 			message = strings.TrimSpace(sb.String())
 		}
 
-		if withCodeBlock {
+		if rootFlagsData.codeBlock {
 			leadingBackQuoteCountMax := 0
 
 			for _, line := range strings.Split(message, "\n") {
@@ -105,15 +112,15 @@ It reads the configuration file and sends the message to the specified webhook.`
 
 			codeBlockBackQuote := strings.Repeat("`", max(leadingBackQuoteCountMax+1, 3))
 
-			message = fmt.Sprintf("%s%s\n%s\n%s", codeBlockBackQuote, codeBlockLang, message, codeBlockBackQuote)
+			message = fmt.Sprintf("%s%s\n%s\n%s", codeBlockBackQuote, rootFlagsData.codeBlockLang, message, codeBlockBackQuote)
 		}
 
 		channelID := uuid.Nil
-		if channelName != "" {
+		if rootFlagsData.channelName != "" {
 			var ok bool
-			channelID, ok = conf.channels[channelName]
+			channelID, ok = conf.channels[rootFlagsData.channelName]
 			if !ok {
-				return fmt.Errorf("channel '%s' is not found: %w", channelName, ErrChannelNotFound)
+				return fmt.Errorf("channel '%s' is not found: %w", rootFlagsData.channelName, ErrChannelNotFound)
 			}
 		}
 
@@ -133,13 +140,15 @@ It reads the configuration file and sends the message to the specified webhook.`
 	},
 }
 
-var (
-	printVersion  bool
-	withCodeBlock bool
+type rootFlags struct {
+	codeBlock     bool
 	codeBlockLang string
 	channelName   string
+}
 
-	version string
+var (
+	printVersion bool
+	version      string
 )
 
 const (
@@ -165,6 +174,8 @@ func Execute() {
 	}
 }
 
+type rootFlagsCtxKey struct{}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 
@@ -178,9 +189,13 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolVarP(&printVersion, "version", "v", false, "Print version information and quit")
 
-	rootCmd.Flags().BoolVarP(&withCodeBlock, "code", "c", false, "Send message with code block")
-	rootCmd.Flags().StringVarP(&codeBlockLang, "lang", "l", "", "Code block language")
-	rootCmd.Flags().StringVarP(&channelName, "channel", "C", "", "Channel name")
+	var rootFlagsData rootFlags
+	rootCmd.Flags().BoolVarP(&rootFlagsData.codeBlock, "code", "c", false, "Send message with code block")
+	rootCmd.Flags().StringVarP(&rootFlagsData.codeBlockLang, "lang", "l", "", "Code block language")
+	rootCmd.Flags().StringVarP(&rootFlagsData.channelName, "channel", "C", "", "Channel name")
+
+	ctx := context.WithValue(context.Background(), rootFlagsCtxKey{}, &rootFlagsData)
+	rootCmd.SetContext(ctx)
 }
 
 // initConfig reads in config file and ENV variables if set.
