@@ -34,6 +34,8 @@ func SetClient(c client.Client) {
 	cl = c
 }
 
+var Command = rootCmd
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	TraverseChildren: true,
