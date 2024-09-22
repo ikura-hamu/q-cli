@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -110,15 +111,12 @@ func TestRoot(t *testing.T) {
 			viper.Set("webhook_secret", tt.webhookConfig.secret)
 			viper.Set("channels", channelsStr)
 
-			withCodeBlock = tt.codeBlock
-			codeBlockLang = tt.codeBlockLang
-			channelName = tt.channelName
-
-			t.Cleanup(func() {
-				withCodeBlock = false
-				codeBlockLang = ""
-				channelName = ""
-			})
+			rootFlagsData := rootFlags{
+				codeBlock:     tt.codeBlock,
+				codeBlockLang: tt.codeBlockLang,
+				channelName:   tt.channelName,
+			}
+			rootCmd.SetContext(context.WithValue(context.Background(), rootFlagsCtxKey{}, &rootFlagsData))
 
 			r, w, err := os.Pipe()
 			require.NoError(t, err, "failed to create pipe")
