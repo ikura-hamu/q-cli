@@ -20,6 +20,10 @@ type WebhookClient struct {
 	webhookURL string
 }
 
+const (
+	channelIDHeader string = "X-TRAQ-Channel-ID"
+)
+
 func NewWebhookClient(webhookID string, hostName string, secret string) (*WebhookClient, error) {
 	mac := hmac.New(sha1.New, []byte(secret))
 
@@ -51,7 +55,7 @@ func (c *WebhookClient) SendMessage(message string, channelID uuid.UUID) error {
 	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
 
 	if channelID != uuid.Nil {
-		req.Header.Set("X-TRAQ-Channel-ID", channelID.String())
+		req.Header.Set(channelIDHeader, channelID.String())
 	}
 
 	c.mac.Reset()

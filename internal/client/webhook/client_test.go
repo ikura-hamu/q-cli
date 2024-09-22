@@ -21,7 +21,8 @@ func TestSendMessage(t *testing.T) {
 		wantErr   error
 	}{
 		"ok": {"test", uuid.Nil, false, nil},
-		"メッセージが空なのでエラー": {"", uuid.Nil, true, client.ErrEmptyMessage},
+		"チャンネルIDが指定されている": {"test", uuid.New(), false, nil},
+		"メッセージが空なのでエラー":   {"", uuid.Nil, true, client.ErrEmptyMessage},
 	}
 
 	for name, tc := range testCases {
@@ -38,6 +39,12 @@ func TestSendMessage(t *testing.T) {
 
 				assert.Equal(t, tc.message, mes)
 				assert.Equal(t, "/api/v3/webhooks/"+webhookID, path)
+
+				if tc.channelID != uuid.Nil {
+					assert.Equal(t, tc.channelID.String(), req.Header.Get(channelIDHeader))
+				} else {
+					assert.Empty(t, req.Header.Get(channelIDHeader))
+				}
 
 				res.WriteHeader(http.StatusNoContent)
 			}))
