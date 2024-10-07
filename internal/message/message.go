@@ -7,5 +7,4 @@ type Option struct {
 
 type Message interface {
 	BuildMessage(args []string, option Option) string
-	ContainsSecret(message string) (bool, string, error)
 }

@@ -1,29 +1,40 @@
 package impl
 
-import "regexp"
+import (
+	"context"
+	"fmt"
+	"regexp"
 
-type checker struct {
-	f       func(string) (bool, error)
-	message string
+	"github.com/ikura-hamu/q-cli/internal/secret"
+)
+
+type SecretDetector struct {
+	checkers map[secret.CheckerKey]checker
 }
 
-var checkers = []checker{
-	{github, "GitHub secret key is detected."},
-	{privateKey, "Private key is detected."},
+func NewSecretDetector(opts ...func(sd *SecretDetector)) *SecretDetector {
+	sd := &SecretDetector{
+		checkers: defaultCheckers,
+	}
+
+	for _, opt := range opts {
+		opt(sd)
+	}
+	return sd
 }
 
-func (m *Message) ContainsSecret(message string) (bool, string, error) {
-	for _, checker := range checkers {
+func (sd *SecretDetector) Detect(ctx context.Context, message string, ignores []secret.CheckerKey) error {
+	for _, checker := range sd.checkers {
 		ok, err := checker.f(message)
 		if err != nil {
-			return false, "", err
+			return fmt.Errorf("failed to check secret: %w", err)
 		}
 		if ok {
-			return true, checker.message, nil
+			return secret.NewErrSecretDetected(checker.message)
 		}
 	}
 
-	return false, "", nil
+	return nil
 }
 
 var githubTokensRegex = regexp.MustCompile(`(ghu|ghs|gho|ghp|ghr)_[0-9a-zA-Z]{36}|github_pat_[0-9a-zA-Z_]{82}`)

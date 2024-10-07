@@ -3,7 +3,7 @@ package impl
 import (
 	"testing"
 
-	"github.com/ikura-hamu/q-cli/internal/message/impl/testdata"
+	"github.com/ikura-hamu/q-cli/internal/secret/impl/testdata"
 )
 
 func Test_github(t *testing.T) {
