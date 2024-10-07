@@ -29,6 +29,6 @@ jobs:
       - name: Check doc diff
         shell: bash
         run: |
-          if [ -n $(git status --porcelain) ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             exit 1
           fi
