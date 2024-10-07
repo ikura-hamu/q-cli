@@ -15,6 +15,8 @@ import (
 	"github.com/ikura-hamu/q-cli/internal/client/webhook"
 	"github.com/ikura-hamu/q-cli/internal/message"
 	"github.com/ikura-hamu/q-cli/internal/message/impl"
+	"github.com/ikura-hamu/q-cli/internal/secret"
+	secretImpl "github.com/ikura-hamu/q-cli/internal/secret/impl"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -22,8 +24,9 @@ import (
 var (
 	cfgFile string
 
-	cl  client.Client
-	mes message.Message
+	cl             client.Client
+	mes            message.Message
+	secretDetector secret.SecretDetector
 )
 
 var (
@@ -55,6 +58,7 @@ var rootCmd = &cobra.Command{
 		SetClient(cl)
 
 		mes = impl.NewMessage()
+		secretDetector = secretImpl.NewSecretDetector()
 
 		return nil
 	},
@@ -71,6 +75,10 @@ var rootCmd = &cobra.Command{
 		rootFlagsData, ok := cmdCtx.Value(rootFlagsCtxKey{}).(*rootFlags)
 		if !ok {
 			return errors.New("failed to get root options")
+		}
+
+		if cl == nil || mes == nil || secretDetector == nil {
+			return errors.New("client, message or secret detector is nil")
 		}
 
 		channelsStr := viper.GetStringMapString(configKeyChannels)
@@ -98,6 +106,15 @@ var rootCmd = &cobra.Command{
 			CodeBlock:     rootFlagsData.codeBlock,
 			CodeBlockLang: rootFlagsData.codeBlockLang,
 		})
+
+		err := secretDetector.Detect(cmdCtx, messageStr)
+		if mes, ok := secret.SecretDetected(err); ok {
+			fmt.Println(mes)
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("failed to detect secret: %w", err)
+		}
 
 		channelID := uuid.Nil
 		if rootFlagsData.channelName != "" {

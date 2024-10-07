@@ -23,7 +23,7 @@ func NewSecretDetector(opts ...func(sd *SecretDetector)) *SecretDetector {
 	return sd
 }
 
-func (sd *SecretDetector) Detect(ctx context.Context, message string, ignores []secret.CheckerKey) error {
+func (sd *SecretDetector) Detect(ctx context.Context, message string) error {
 	for _, checker := range sd.checkers {
 		ok, err := checker.f(message)
 		if err != nil {
