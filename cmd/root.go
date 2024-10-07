@@ -4,17 +4,19 @@ Copyright © 2024 ikura-hamu 104292023+ikura-hamu@users.noreply.github.com
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"runtime/debug"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/client/webhook"
+	"github.com/ikura-hamu/q-cli/internal/message"
+	"github.com/ikura-hamu/q-cli/internal/message/impl"
+	"github.com/ikura-hamu/q-cli/internal/secret"
+	secretImpl "github.com/ikura-hamu/q-cli/internal/secret/impl"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -22,7 +24,9 @@ import (
 var (
 	cfgFile string
 
-	cl client.Client
+	cl             client.Client
+	mes            message.Message
+	secretDetector secret.SecretDetector
 )
 
 var (
@@ -52,6 +56,10 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("failed to create client: %w", err)
 		}
 		SetClient(cl)
+
+		mes = impl.NewMessage()
+		secretDetector = secretImpl.NewSecretDetector()
+
 		return nil
 	},
 
@@ -67,6 +75,10 @@ var rootCmd = &cobra.Command{
 		rootFlagsData, ok := cmdCtx.Value(rootFlagsCtxKey{}).(*rootFlags)
 		if !ok {
 			return errors.New("failed to get root options")
+		}
+
+		if cl == nil || mes == nil || secretDetector == nil {
+			return errors.New("client, message or secret detector is nil")
 		}
 
 		channelsStr := viper.GetStringMapString(configKeyChannels)
@@ -89,35 +101,22 @@ var rootCmd = &cobra.Command{
 		if conf.host == "" || conf.id == "" || conf.secret == "" {
 			return ErrEmptyConfiguration
 		}
-		var message string
 
-		if len(args) > 0 {
-			message = strings.Join(args, " ")
-		} else {
-			sc := bufio.NewScanner(os.Stdin)
-			sb := &strings.Builder{}
-			for sc.Scan() {
-				text := sc.Text()
-				sb.WriteString(text + "\n")
-			}
-			message = strings.TrimSpace(sb.String())
+		messageStr, err := mes.BuildMessage(args, message.Option{
+			CodeBlock:     rootFlagsData.codeBlock,
+			CodeBlockLang: rootFlagsData.codeBlockLang,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to build message: %w", err)
 		}
 
-		if rootFlagsData.codeBlock {
-			leadingBackQuoteCountMax := 0
-
-			for _, line := range strings.Split(message, "\n") {
-				if !strings.HasPrefix(line, "```") {
-					continue
-				}
-				noLeadingBackQuoteLine := strings.TrimLeft(line, "`")
-				leadingBackQuoteCount := len(line) - len(noLeadingBackQuoteLine)
-				leadingBackQuoteCountMax = max(leadingBackQuoteCountMax, leadingBackQuoteCount)
-			}
-
-			codeBlockBackQuote := strings.Repeat("`", max(leadingBackQuoteCountMax+1, 3))
-
-			message = fmt.Sprintf("%s%s\n%s\n%s", codeBlockBackQuote, rootFlagsData.codeBlockLang, message, codeBlockBackQuote)
+		err = secretDetector.Detect(cmdCtx, messageStr)
+		if detectMes, ok := secret.SecretDetected(err); ok {
+			fmt.Println(detectMes)
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("failed to detect secret: %w", err)
 		}
 
 		channelID := uuid.Nil
@@ -130,7 +129,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		if cl != nil {
-			err := cl.SendMessage(message, channelID)
+			err := cl.SendMessage(messageStr, channelID)
 			if errors.Is(err, client.ErrEmptyMessage) {
 				return errors.New("empty message is not allowed")
 			}

@@ -10,6 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/client/mock"
+	"github.com/ikura-hamu/q-cli/internal/message/impl"
+	"github.com/ikura-hamu/q-cli/internal/secret"
+	secretMock "github.com/ikura-hamu/q-cli/internal/secret/mock"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,6 +37,8 @@ func TestRoot(t *testing.T) {
 		SendMessageErr      error
 		expectedMessage     string
 		SkipCallSendMessage bool
+
+		secretDetectError error
 
 		expectedChannelID uuid.UUID
 		isError           bool
@@ -117,7 +122,23 @@ func TestRoot(t *testing.T) {
 			isError:             true,
 			expectedErr:         ErrEmptyConfiguration,
 		},
+		"secret detect error": {
+			webhookConfig:       defaultWebhookConfig,
+			input:               input{false, "", "", false, "test", nil},
+			secretDetectError:   fmt.Errorf("error"),
+			SkipCallSendMessage: true,
+			isError:             true,
+		},
+		"secret detected": {
+			webhookConfig:       defaultWebhookConfig,
+			input:               input{false, "", "", false, "secret value", nil},
+			secretDetectError:   secret.NewErrSecretDetected("secret detected"),
+			SkipCallSendMessage: true,
+			expectedStdout:      "secret detected\n",
+		},
 	}
+
+	mes = impl.NewMessage()
 
 	for description, tt := range test {
 		t.Run(description, func(t *testing.T) {
@@ -156,6 +177,13 @@ func TestRoot(t *testing.T) {
 			}
 
 			SetClient(mockClient)
+
+			secretDetectorMock := &secretMock.SecretDetectorMock{
+				DetectFunc: func(ctx context.Context, message string) error {
+					return tt.secretDetectError
+				},
+			}
+			secretDetector = secretDetectorMock
 
 			_, err := fmt.Fprint(stdinW, tt.stdin)
 			require.NoError(t, err, "failed to write to pipe")
