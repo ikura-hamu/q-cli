@@ -15,23 +15,27 @@ func NewMessage() *Message {
 	return &Message{}
 }
 
-func (m *Message) BuildMessage(args []string, option message.Option) string {
+func (m *Message) BuildMessage(args []string, option message.Option) (string, error) {
 	var message string
+	var err error
 
 	if len(args) > 0 {
 		message = strings.Join(args, " ")
 	} else {
-		message = scan()
+		message, err = scan()
+		if err != nil {
+			return "", fmt.Errorf("failed to scan message: %w", err)
+		}
 	}
 
 	if option.CodeBlock {
 		message = addCodeBlock(message, option.CodeBlockLang)
 	}
 
-	return message
+	return message, nil
 }
 
-func scan() string {
+func scan() (string, error) {
 	sc := bufio.NewScanner(os.Stdin)
 	sb := &strings.Builder{}
 	for sc.Scan() {
@@ -39,7 +43,11 @@ func scan() string {
 		sb.WriteString(text + "\n")
 	}
 
-	return strings.TrimSpace(sb.String())
+	if err := sc.Err(); err != nil {
+		return "", fmt.Errorf("failed to read from stdin: %w", err)
+	}
+
+	return strings.TrimSpace(sb.String()), nil
 }
 
 func addCodeBlock(baseMessage string, codeBlockLang string) string {

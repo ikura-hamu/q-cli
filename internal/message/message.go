@@ -6,5 +6,5 @@ type Option struct {
 }
 
 type Message interface {
-	BuildMessage(args []string, option Option) string
+	BuildMessage(args []string, option Option) (string, error)
 }

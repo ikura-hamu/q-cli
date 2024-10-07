@@ -102,14 +102,17 @@ var rootCmd = &cobra.Command{
 			return ErrEmptyConfiguration
 		}
 
-		messageStr := mes.BuildMessage(args, message.Option{
+		messageStr, err := mes.BuildMessage(args, message.Option{
 			CodeBlock:     rootFlagsData.codeBlock,
 			CodeBlockLang: rootFlagsData.codeBlockLang,
 		})
+		if err != nil {
+			return fmt.Errorf("failed to build message: %w", err)
+		}
 
-		err := secretDetector.Detect(cmdCtx, messageStr)
-		if mes, ok := secret.SecretDetected(err); ok {
-			fmt.Println(mes)
+		err = secretDetector.Detect(cmdCtx, messageStr)
+		if detectMes, ok := secret.SecretDetected(err); ok {
+			fmt.Println(detectMes)
 			return nil
 		}
 		if err != nil {
