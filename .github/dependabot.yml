@@ -1,0 +1,8 @@
+version: 2
+updates:
+  - directory: /
+    open-pull-requests-limit: 5
+    rebase-strategy: auto
+    package-ecosystem: gomod
+    schedule:
+      interval: monthly
