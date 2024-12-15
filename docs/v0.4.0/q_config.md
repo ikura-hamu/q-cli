@@ -1,20 +1,19 @@
-## q init
+## q config
 
-Initialize the configuration file
+config prints the configuration file path and the current configuration of the CLI
 
 ### Synopsis
 
-initコマンドは、設定ファイルの値を対話形式で設定することができます。
+configコマンドは、設定ファイルのパスと現在のCLIの設定を表示します。webhook_secretなど、一部の設定はマスクされます。
 
 ```
-q init [flags]
+q config [flags]
 ```
 
 ### Options
 
 ```
-  -f, --force   既存の設定ファイルを上書きします
-  -h, --help    help for init
+  -h, --help   help for config
 ```
 
 ### Options inherited from parent commands
