@@ -97,7 +97,7 @@ func generateFromTemplate(entry fs.DirEntry, versionDir string, values map[strin
 	if err != nil {
 		log.Fatalf("failed to open %s: %v", outputFilePath, err)
 	}
-	defer outputFile.Close()
+	defer outputFile.Close() //nolint:errcheck
 	if err := tmp.Execute(outputFile, values); err != nil {
 		log.Fatalf("failed to execute template: %v", err)
 	}
@@ -107,7 +107,7 @@ func generateFromTemplate(entry fs.DirEntry, versionDir string, values map[strin
 	if err != nil {
 		log.Fatalf("failed to open %s: %v", outputVersionFilePath, err)
 	}
-	defer outputVersionFile.Close()
+	defer outputVersionFile.Close() //nolint:errcheck
 	if err := tmp.Execute(outputVersionFile, values); err != nil {
 		log.Fatalf("failed to execute template: %v", err)
 	}

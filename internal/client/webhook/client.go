@@ -42,7 +42,7 @@ func NewWebhookClient(webhookID string, hostName string, secret string) (*Webhoo
 	}, nil
 }
 
-func (c *WebhookClient) SendMessage(message string, channelID uuid.UUID) error {
+func (c *WebhookClient) SendMessage(message string, channelID uuid.UUID) (err error) {
 	if message == "" {
 		return client.ErrEmptyMessage
 	}
@@ -70,7 +70,9 @@ func (c *WebhookClient) SendMessage(message string, channelID uuid.UUID) error {
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		err = res.Body.Close()
+	}()
 
 	if res.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("failed to send message: %s", res.Status)
