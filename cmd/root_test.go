@@ -149,9 +149,9 @@ func TestRoot(t *testing.T) {
 				channelsStr[k] = v.String()
 			}
 
-			viper.Set("webhook_host", tt.webhookConfig.host)
-			viper.Set("webhook_id", tt.webhookConfig.id)
-			viper.Set("webhook_secret", tt.webhookConfig.secret)
+			viper.Set("webhook_host", tt.host)
+			viper.Set("webhook_id", tt.id)
+			viper.Set("webhook_secret", tt.secret)
 			viper.Set("channels", channelsStr)
 
 			rootFlagsData := rootFlags{
@@ -187,10 +187,12 @@ func TestRoot(t *testing.T) {
 
 			_, err := fmt.Fprint(stdinW, tt.stdin)
 			require.NoError(t, err, "failed to write to pipe")
-			stdinW.Close()
+			err = stdinW.Close()
+			require.NoError(t, err, "failed to close pipe")
 
 			cmdErr := rootCmd.RunE(rootCmd, tt.args)
-			os.Stdout.Close()
+			err = os.Stdout.Close()
+			require.NoError(t, err, "failed to close pipe")
 
 			if tt.SkipCallSendMessage {
 				assert.Len(t, mockClient.SendMessageCalls(), 0)
@@ -252,7 +254,8 @@ func ReplaceStdin(t *testing.T) *os.File {
 
 	t.Cleanup(func() {
 		os.Stdin = origStdin
-		stdinR.Close()
+		err = stdinR.Close()
+		require.NoError(t, err, "failed to close pipe")
 	})
 
 	return stdinW
