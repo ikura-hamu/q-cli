@@ -8,6 +8,11 @@
 
 - [`q`](q.md)
 - [`q init`](q_init.md)
+- [`q config`](q_config.md)
+
+## 機能
+
+- [secret detection](secret.md)
 
 ## Preparation
 
