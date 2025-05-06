@@ -174,7 +174,7 @@ func checkMessage(message string) (bool, error) {
 	}()
 
 	t := term.NewTerminal(os.Stdin, "")
-	t.SetPrompt("Send? y/n(any): ")
+	t.SetPrompt("Send? [y/n(any)]: ")
 	l, err := t.ReadLine()
 	if errors.Is(err, io.EOF) {
 		return false, nil
