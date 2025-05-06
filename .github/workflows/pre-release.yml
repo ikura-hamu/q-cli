@@ -7,6 +7,12 @@ on:
         required: true
         type: string
         description: "New version (ex: v1.2.3)"
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: "New version (ex: v1.2.3)"
 
 jobs:
   check_docs:

@@ -6,6 +6,10 @@ on:
       - "v*"
 
 jobs:
+  pre-release-check:
+    uses: ./.github/workflows/pre-release.yml
+    with:
+      version: ${{ github.ref_name }}
   release:
     runs-on: ubuntu-latest
     permissions:
