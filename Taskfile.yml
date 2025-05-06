@@ -26,4 +26,4 @@ tasks:
 
   build:
     cmds:
-      - go build -o ./bin/ -ldflags "-s -w" .
+      - go build -o ./q -ldflags "-s -w" .
