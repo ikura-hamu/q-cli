@@ -30,7 +30,7 @@ jobs:
         run: go mod download
 
       - name: Generate doc
-        run: go run bin/docs/main.go -version ${{ github.event.inputs.version }}
+        run: go run bin/docs/main.go -version ${{ inputs.version }}
 
       - name: Check doc diff
         shell: bash
