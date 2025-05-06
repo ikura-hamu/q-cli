@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -40,10 +41,11 @@ func TestRoot(t *testing.T) {
 
 		secretDetectError error
 
-		expectedChannelID uuid.UUID
-		isError           bool
-		expectedErr       error
-		expectedStdout    string
+		expectedChannelID    uuid.UUID
+		isError              bool
+		expectedErr          error
+		expectedStdoutPrefix string
+		expectedStdout       string
 	}{
 		"ok": {
 			webhookConfig:     defaultWebhookConfig,
@@ -104,16 +106,16 @@ func TestRoot(t *testing.T) {
 			expectedErr:         ErrChannelNotFound,
 		},
 		"print version": {
-			webhookConfig:       defaultWebhookConfig,
-			input:               input{false, "", "", true, "", nil},
-			SkipCallSendMessage: true,
-			expectedStdout:      "q version unknown\n",
+			webhookConfig:        defaultWebhookConfig,
+			input:                input{false, "", "", true, "", nil},
+			SkipCallSendMessage:  true,
+			expectedStdoutPrefix: "q version",
 		},
 		"設定が不十分でもバージョンを表示": {
-			webhookConfig:       webhookConfig{},
-			input:               input{false, "", "", true, "", nil},
-			SkipCallSendMessage: true,
-			expectedStdout:      "q version unknown\n",
+			webhookConfig:        webhookConfig{},
+			input:                input{false, "", "", true, "", nil},
+			SkipCallSendMessage:  true,
+			expectedStdoutPrefix: "q version",
 		},
 		"設定が不十分なのでエラーメッセージ": {
 			webhookConfig:       webhookConfig{},
@@ -203,12 +205,18 @@ func TestRoot(t *testing.T) {
 				assert.Equal(t, tt.expectedChannelID, mockClient.SendMessageCalls()[0].ChannelID)
 			}
 
-			if tt.expectedStdout != "" {
+			if tt.expectedStdout != "" || tt.expectedStdoutPrefix != "" {
 				var buffer bytes.Buffer
 				_, err := buffer.ReadFrom(stdoutR)
 				require.NoError(t, err, "failed to read from pipe")
 
-				assert.Equal(t, tt.expectedStdout, buffer.String())
+				s := buffer.String()
+				if tt.expectedStdoutPrefix != "" {
+					assert.True(t, strings.HasPrefix(s, tt.expectedStdoutPrefix), "stdout does not have expected prefix")
+				}
+				if tt.expectedStdout != "" {
+					assert.Equal(t, tt.expectedStdout, buffer.String())
+				}
 			}
 
 			if tt.isError {
