@@ -7,8 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"runtime/debug"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
@@ -19,6 +21,7 @@ import (
 	secretImpl "github.com/ikura-hamu/q-cli/internal/secret/impl"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/term"
 )
 
 var (
@@ -128,6 +131,17 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		if rootFlagsData.printBeforeSend {
+			ok, err := checkMessage(messageStr)
+			if err != nil {
+				return fmt.Errorf("failed to check message: %w", err)
+			}
+			if !ok {
+				fmt.Println("Send canceled.")
+				return nil
+			}
+		}
+
 		if cl != nil {
 			err := cl.SendMessage(messageStr, channelID)
 			if errors.Is(err, client.ErrEmptyMessage) {
@@ -144,10 +158,42 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+func checkMessage(message string) (bool, error) {
+	fmt.Printf(`========Message:========
+%s
+========================
+`, message)
+
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		return false, fmt.Errorf("terminal make raw: %w", err)
+	}
+	defer func() {
+		err := term.Restore(int(os.Stdin.Fd()), oldState)
+		cobra.CheckErr(err)
+	}()
+
+	t := term.NewTerminal(os.Stdin, "")
+	t.SetPrompt("Send? [y/n(any)]: ")
+	l, err := t.ReadLine()
+	if errors.Is(err, io.EOF) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("terminal read line: %w", err)
+	}
+	if strings.ToLower(l) != "y" {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 type rootFlags struct {
-	codeBlock     bool
-	codeBlockLang string
-	channelName   string
+	codeBlock       bool
+	codeBlockLang   string
+	channelName     string
+	printBeforeSend bool
 }
 
 var (
@@ -198,6 +244,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&rootFlagsData.codeBlockLang, "lang", "l", "", "コードブロックの言語を指定します。")
 	rootCmd.Flags().StringVarP(&rootFlagsData.channelName, "channel", "C", "", `チャンネル名を指定して、デフォルト以外のチャンネルにメッセージを送信します。
 チャンネル名は設定ファイルの channels に記述されたキーを指定します。`)
+	rootCmd.Flags().BoolVarP(&rootFlagsData.printBeforeSend, "print", "p", false, "メッセージを送信する前に表示し、確認を求めます。")
 
 	ctx := context.WithValue(context.Background(), rootFlagsCtxKey{}, &rootFlagsData)
 	rootCmd.SetContext(ctx)
