@@ -11,7 +11,7 @@ import (
 	"slices"
 	"text/template"
 
-	"github.com/ikura-hamu/q-cli/cmd"
+	"github.com/ikura-hamu/q-cli/internal/cmd"
 	"github.com/spf13/cobra/doc"
 )
 
