@@ -30,10 +30,10 @@ Webhook IDとWebhookシークレットが必要になります。
 #### Go
 
 ```sh
-go install github.com/ikura-hamu/q-cli@{{ .version }}
+go install github.com/ikura-hamu/q-cli/cmd/q@{{ .version }}
 ```
 
-`$GOPATH/bin`以下に`q-cli`という名前でインストールされます。
+`GOBIN`（未設定の場合は`$GOPATH/bin`）以下に`q`という名前でインストールされます。
 
 #### GitHub Release
 
