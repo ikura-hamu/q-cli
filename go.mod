@@ -1,11 +1,9 @@
 module github.com/ikura-hamu/q-cli
 
-go 1.24
-
-toolchain go1.24.1
+go 1.25
 
 require (
-	github.com/matryer/moq v0.5.3
+	github.com/matryer/moq v0.6.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
