@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
+	"github.com/ikura-hamu/q-cli/internal/config"
 )
 
 type WebhookClient struct {
@@ -23,6 +24,25 @@ type WebhookClient struct {
 const (
 	channelIDHeader string = "X-TRAQ-Channel-ID"
 )
+
+func NewClientFromConfig(conf config.Webhook) (*WebhookClient, error) {
+	webhookID, err := conf.GetWebhookID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get webhook ID: %w", err)
+	}
+
+	hostName, err := conf.GetHostName()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get host name: %w", err)
+	}
+
+	secret, err := conf.GetSecret()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret: %w", err)
+	}
+
+	return NewWebhookClient(webhookID, hostName, secret)
+}
 
 func NewWebhookClient(webhookID string, hostName string, secret string) (*WebhookClient, error) {
 	mac := hmac.New(sha1.New, []byte(secret))

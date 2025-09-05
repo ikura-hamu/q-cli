@@ -15,6 +15,7 @@ require (
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
+	github.com/guregu/null/v6 v6.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	golang.org/x/sync v0.14.0 // indirect
 )
