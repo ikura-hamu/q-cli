@@ -6,21 +6,47 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/ikura-hamu/q-cli/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
 )
 
-// configCmd represents the config command
-var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "config prints the configuration file path and the current configuration of the CLI",
-	Long:  `configコマンドは、設定ファイルのパスと現在のCLIの設定を表示します。webhook_secretなど、一部の設定はマスクされます。`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fileName := viper.ConfigFileUsed()
-		allConfig := viper.AllSettings()
+type ConfigBare struct {
+	*cobra.Command
+}
 
-		allConfig[configKeyWebhookSecret] = "********"
+func NewConfigBare() *ConfigBare {
+	configCmd := &cobra.Command{
+		Use:   "config",
+		Short: "config prints the configuration file path and the current configuration of the CLI",
+		Long:  `configコマンドは、設定ファイルのパスと現在のCLIの設定を表示します。webhook_secretなど、一部の設定はマスクされます。`,
+	}
+	return &ConfigBare{
+		Command: configCmd,
+	}
+}
+
+type Config struct {
+	*cobra.Command
+}
+
+func NewConfig(root *Root, confBareCmd *ConfigBare, conf config.Webhook, v *viper.Viper) *Config {
+	root.AddCommand(confBareCmd.Command)
+	confBareCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		err := v.ReadInConfig()
+		if err != nil {
+			return fmt.Errorf("read config: %w", err)
+		}
+		return nil
+	}
+
+	confBareCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		fileName := v.ConfigFileUsed()
+
+		allConfig := v.AllSettings()
+
+		allConfig["webhook_secret"] = "********"
 
 		yamlConfig, err := yaml.Marshal(allConfig)
 		cobra.CheckErr(err)
@@ -30,19 +56,9 @@ var configCmd = &cobra.Command{
 %s
 `, fileName, string(yamlConfig))
 
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(configCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// configCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// configCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+		return nil
+	}
+	return &Config{
+		Command: confBareCmd.Command,
+	}
 }

@@ -36,6 +36,9 @@ func main() {
 	confInit := flag.NewInit(initBareCmd)
 	_ = cmd.NewInit(initBareCmd, confInit, v)
 
+	confBareCmd := cmd.NewConfigBare()
+	_ = cmd.NewConfig(rootCmd, confBareCmd, confWebhook, v)
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
