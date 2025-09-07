@@ -73,10 +73,11 @@ func main() {
 }
 
 func generateFromCobra(versionDir string) {
-	if err := doc.GenMarkdownTree(cmd.Command, docsDir); err != nil {
+	rootCmd := cmd.NewRootBare()
+	if err := doc.GenMarkdownTree(rootCmd.Command, docsDir); err != nil {
 		log.Fatalf("failed to gen cmd markdown: %v", err)
 	}
-	if err := doc.GenMarkdownTree(cmd.Command, versionDir); err != nil {
+	if err := doc.GenMarkdownTree(rootCmd.Command, versionDir); err != nil {
 		log.Fatalf("failed to gen cmd markdown: %v", err)
 	}
 }

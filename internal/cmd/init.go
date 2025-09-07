@@ -9,29 +9,56 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ikura-hamu/q-cli/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
-// initCmd represents the init command
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize the configuration file",
-	Long:  `initコマンドは、設定ファイルの値を対話形式で設定することができます。`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if initForce {
-			fmt.Printf("Overwriting the existing configuration file: %s\n", cmp.Or(viper.ConfigFileUsed(), "(config file not found)"))
+type InitBare struct {
+	*cobra.Command
+}
+
+func NewInitBare(rootCmd *Root) *InitBare {
+	initCmd := &cobra.Command{
+		Use:   "init",
+		Short: "Initialize the configuration file",
+		Long:  `initコマンドは、設定ファイルの値を対話形式で設定することができます。`,
+	}
+
+	rootCmd.AddCommand(initCmd)
+
+	return &InitBare{
+		Command: initCmd,
+	}
+}
+
+type Init struct {
+	*cobra.Command
+}
+
+// TODO: *viper.Viperじゃなくて設定ファイルに書き込む用の何かinterfaceを渡す
+func NewInit(initBare *InitBare, initConfig config.Init, v *viper.Viper) *Init {
+	initBare.RunE = func(cmd *cobra.Command, args []string) error {
+		force, err := initConfig.GetForce()
+		if err != nil {
+			return fmt.Errorf("failed to get force flag: %w", err)
+		}
+
+		if force {
+			fmt.Printf("Overwriting the existing configuration file: %s\n", cmp.Or(v.ConfigFileUsed(), "(config file not found)"))
 		} else {
-			if viper.ConfigFileUsed() != "" {
+			if v.ConfigFileUsed() != "" {
 				fmt.Println("Configuration file already exists.")
-				fmt.Println(viper.ConfigFileUsed())
-				return
+				fmt.Println(v.ConfigFileUsed())
+				return nil
 			}
 		}
 
 		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-		cobra.CheckErr(err)
+		if err != nil {
+			return fmt.Errorf("terminal make raw: %w", err)
+		}
 		defer func() {
 			err := term.Restore(int(os.Stdin.Fd()), oldState)
 			cobra.CheckErr(err)
@@ -43,9 +70,9 @@ var initCmd = &cobra.Command{
 			configKey    string
 			isPassword   bool
 		}{
-			{"Enter the webhook host", "https://q.trap.jp", configKeyWebhookHost, false},
-			{"Enter the webhook ID", "", configKeyWebhookID, false},
-			{"Enter the webhook secret", "", configKeyWebhookSecret, true},
+			{"Enter the webhook host", "https://q.trap.jp", "webhook_host", false},
+			{"Enter the webhook ID", "", "webhook_id", false},
+			{"Enter the webhook secret", "", "webhook_secret", true},
 		}
 
 		t := term.NewTerminal(os.Stdin, "")
@@ -65,7 +92,7 @@ var initCmd = &cobra.Command{
 				input, err = t.ReadLine()
 			}
 			if err != nil {
-				cobra.CheckErr(err)
+				return fmt.Errorf("terminal read line: %w", err)
 			}
 
 			input = strings.TrimSpace(input)
@@ -76,33 +103,23 @@ var initCmd = &cobra.Command{
 				input = p.defaultValue
 			}
 
-			viper.Set(p.configKey, input)
+			v.Set(p.configKey, input)
 		}
 
-		if initForce {
-			err = viper.WriteConfig()
+		if force {
+			err = v.WriteConfig()
 		} else {
-			err = viper.SafeWriteConfig()
+			err = v.SafeWriteConfig()
 		}
-		cobra.CheckErr(err)
-	},
-}
 
-var (
-	initForce bool
-)
+		if err != nil {
+			return fmt.Errorf("failed to write config file: %w", err)
+		}
 
-func init() {
-	rootCmd.AddCommand(initCmd)
+		return nil
+	}
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// initCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// initCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	initCmd.Flags().BoolVarP(&initForce, "force", "f", false, "既存の設定ファイルを上書きします")
+	return &Init{
+		Command: initBare.Command,
+	}
 }
