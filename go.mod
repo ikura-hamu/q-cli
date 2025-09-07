@@ -1,21 +1,19 @@
 module github.com/ikura-hamu/q-cli
 
-go 1.24
-
-toolchain go1.24.1
+go 1.25
 
 require (
 	github.com/guregu/null/v6 v6.0.0
-	github.com/matryer/moq v0.5.3
+	github.com/matryer/moq v0.6.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
-	github.com/stretchr/testify v1.10.0
-	golang.org/x/term v0.33.0
+	github.com/stretchr/testify v1.11.1
+	golang.org/x/term v0.34.0
 )
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
-	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
+	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	golang.org/x/sync v0.14.0 // indirect
 )
@@ -36,8 +34,8 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.33.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 )
