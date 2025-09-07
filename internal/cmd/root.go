@@ -13,11 +13,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
-	"github.com/ikura-hamu/q-cli/internal/client/webhook"
 	"github.com/ikura-hamu/q-cli/internal/config"
 	"github.com/ikura-hamu/q-cli/internal/message"
+	"github.com/ikura-hamu/q-cli/internal/pkg/types"
 	"github.com/ikura-hamu/q-cli/internal/secret"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
@@ -49,10 +50,23 @@ func NewRootBare() *RootBare {
 	}
 }
 
-func NewRoot(rootCmd *RootBare, fileConf config.File, rootConf config.Root, webhookConf config.Webhook,
-	cl *webhook.WebhookClient, mes message.Message, sec secret.SecretDetector) *Root {
+func NewRoot[Client client.Client](rootCmd *RootBare, fileConf config.File, rootConf config.Root, webhookConf config.Webhook,
+	clientFactory types.Factory[Client], mes message.Message, sec secret.SecretDetector, v *viper.Viper) *Root {
+
+	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		err := v.ReadInConfig()
+		if err != nil {
+			return fmt.Errorf("read config: %w", err)
+		}
+		return nil
+	}
 
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cl, err := clientFactory()
+		if err != nil {
+			return fmt.Errorf("create client: %w", err)
+		}
+
 		if v, err := rootConf.GetVersion(); err != nil {
 			return fmt.Errorf("failed to get version flag: %w", err)
 		} else if v {

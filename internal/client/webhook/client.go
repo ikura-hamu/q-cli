@@ -25,6 +25,16 @@ const (
 	channelIDHeader string = "X-TRAQ-Channel-ID"
 )
 
+func NewWebhookClientFactory(confFactory func() (config.Webhook, error)) func() (*WebhookClient, error) {
+	return func() (*WebhookClient, error) {
+		conf, err := confFactory()
+		if err != nil {
+			return nil, fmt.Errorf("create webhook config: %w", err)
+		}
+		return NewClientFromConfig(conf)
+	}
+}
+
 func NewClientFromConfig(conf config.Webhook) (*WebhookClient, error) {
 	webhookID, err := conf.GetWebhookID()
 	if err != nil {

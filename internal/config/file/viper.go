@@ -31,10 +31,5 @@ func NewViper(conf config.File) (*viper.Viper, error) {
 		v.AddConfigPath(home)
 	}
 
-	err = v.ReadInConfig()
-	if err != nil {
-		return nil, fmt.Errorf("read config: %w", err)
-	}
-
 	return v, nil
 }
