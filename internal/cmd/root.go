@@ -25,7 +25,15 @@ var (
 	ErrChannelNotFound = errors.New("channel name is not in the configuration")
 )
 
-func New() *cobra.Command {
+type RootBare struct {
+	*cobra.Command
+}
+
+type Root struct {
+	*cobra.Command
+}
+
+func NewRootBare() *RootBare {
 	rootCmd := &cobra.Command{
 		TraverseChildren: true,
 		Use:              "q [message]",
@@ -36,13 +44,14 @@ func New() *cobra.Command {
 メッセージは標準入力からも受け取ることができます。
 設定ファイルの場所は、何も指定しない場合、$HOME/.q-cli.yaml です。`,
 	}
-	return rootCmd
+	return &RootBare{
+		Command: rootCmd,
+	}
 }
 
-func NewRoot(rootCmd *cobra.Command, fileConf config.File, rootConf config.Root, webhookConf config.Webhook,
-	cl *webhook.WebhookClient, mes message.Message, sec secret.SecretDetector) *cobra.Command {
+func NewRoot(rootCmd *RootBare, fileConf config.File, rootConf config.Root, webhookConf config.Webhook,
+	cl *webhook.WebhookClient, mes message.Message, sec secret.SecretDetector) *Root {
 
-	// rootCmd represents the base command when called without any subcommands
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if v, err := rootConf.GetVersion(); err != nil {
 			return fmt.Errorf("failed to get version flag: %w", err)
@@ -124,7 +133,9 @@ func NewRoot(rootCmd *cobra.Command, fileConf config.File, rootConf config.Root,
 		return nil
 	}
 
-	return rootCmd
+	return &Root{
+		Command: rootCmd.Command,
+	}
 }
 
 func checkMessage(message string) (bool, error) {
