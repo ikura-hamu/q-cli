@@ -16,7 +16,6 @@ import (
 	"github.com/ikura-hamu/q-cli/internal/message"
 	"github.com/ikura-hamu/q-cli/internal/secret"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
@@ -49,15 +48,7 @@ func NewRootBare() *RootBare {
 }
 
 func NewRoot(rootCmd *RootBare, fileConf config.File, rootConf config.Root,
-	cl client.Client, mes message.Message, sec secret.SecretDetector, v *viper.Viper) *Root {
-
-	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		err := v.ReadInConfig()
-		if err != nil {
-			return fmt.Errorf("read config: %w", err)
-		}
-		return nil
-	}
+	cl client.Client, mes message.Message, sec secret.SecretDetector) *Root {
 
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if v, err := rootConf.GetVersion(); err != nil {

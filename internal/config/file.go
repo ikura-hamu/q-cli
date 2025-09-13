@@ -8,7 +8,16 @@ type File interface {
 
 type ConfigValues map[string]any
 
-type FileWriter interface {
+type FileNameGetter interface {
 	GetUsedFilePath() (string, error)
+}
+
+type FileWriter interface {
+	FileNameGetter
 	Write(force bool, val ConfigValues) error
+}
+
+type FileReader interface {
+	FileNameGetter
+	Read() (ConfigValues, error)
 }

@@ -42,3 +42,27 @@ func (w *Writer) Write(force bool, val config.ConfigValues) error {
 
 	return nil
 }
+
+type Reader struct {
+	v *viper.Viper
+}
+
+var _ config.FileReader = (*Reader)(nil)
+
+func NewReader(v *viper.Viper) *Reader {
+	return &Reader{
+		v: v,
+	}
+}
+
+func (r *Reader) Read() (config.ConfigValues, error) {
+	r.v.AllSettings()
+
+	allSettings := r.v.AllSettings()
+
+	return config.ConfigValues(allSettings), nil
+}
+
+func (r *Reader) GetUsedFilePath() (string, error) {
+	return r.v.ConfigFileUsed(), nil
+}

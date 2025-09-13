@@ -33,7 +33,7 @@ func main() {
 	mes := impl.NewMessage()
 	sec := secretImpl.NewSecretDetector()
 
-	rootCmd := cmd.NewRoot(rootBareCmd, confFile, confRoot, clientFactory, mes, sec, v)
+	rootCmd := cmd.NewRoot(rootBareCmd, confFile, confRoot, clientFactory, mes, sec)
 
 	initBareCmd := cmd.NewInitBare(rootCmd)
 	confInit := flag.NewInit(initBareCmd)
@@ -41,7 +41,8 @@ func main() {
 	_ = cmd.NewInit(initBareCmd, confInit, configFileWriter)
 
 	confBareCmd := cmd.NewConfigBare()
-	_ = cmd.NewConfig(rootCmd, confBareCmd, confWebhook, v)
+	configFileReader := file.NewReader(v)
+	_ = cmd.NewConfig(rootCmd, confBareCmd, configFileReader)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

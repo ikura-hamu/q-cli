@@ -8,7 +8,6 @@ import (
 
 	"github.com/ikura-hamu/q-cli/internal/config"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,20 +30,19 @@ type Config struct {
 	*cobra.Command
 }
 
-func NewConfig(root *Root, confBareCmd *ConfigBare, conf config.Webhook, v *viper.Viper) *Config {
+func NewConfig(root *Root, confBareCmd *ConfigBare, fr config.FileReader) *Config {
 	root.AddCommand(confBareCmd.Command)
-	confBareCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		err := v.ReadInConfig()
+
+	confBareCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		fileName, err := fr.GetUsedFilePath()
+		if err != nil {
+			return fmt.Errorf("get config file path: %w", err)
+		}
+
+		allConfig, err := fr.Read()
 		if err != nil {
 			return fmt.Errorf("read config: %w", err)
 		}
-		return nil
-	}
-
-	confBareCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		fileName := v.ConfigFileUsed()
-
-		allConfig := v.AllSettings()
 
 		allConfig["webhook_secret"] = "********"
 
