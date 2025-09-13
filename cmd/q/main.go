@@ -37,7 +37,8 @@ func main() {
 
 	initBareCmd := cmd.NewInitBare(rootCmd)
 	confInit := flag.NewInit(initBareCmd)
-	_ = cmd.NewInit(initBareCmd, confInit, v)
+	configFileWriter := file.NewWriter(v)
+	_ = cmd.NewInit(initBareCmd, confInit, configFileWriter)
 
 	confBareCmd := cmd.NewConfigBare()
 	_ = cmd.NewConfig(rootCmd, confBareCmd, confWebhook, v)

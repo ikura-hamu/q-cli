@@ -11,7 +11,6 @@ import (
 
 	"github.com/ikura-hamu/q-cli/internal/config"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
@@ -38,19 +37,23 @@ type Init struct {
 }
 
 // TODO: *viper.Viperじゃなくて設定ファイルに書き込む用の何かinterfaceを渡す
-func NewInit(initBare *InitBare, initConfig config.Init, v *viper.Viper) *Init {
+func NewInit(initBare *InitBare, initConfig config.Init, cw config.FileWriter) *Init {
 	initBare.RunE = func(cmd *cobra.Command, args []string) error {
 		force, err := initConfig.GetForce()
 		if err != nil {
 			return fmt.Errorf("failed to get force flag: %w", err)
 		}
 
+		filePath, err := cw.GetUsedFilePath()
+		if err != nil {
+			return fmt.Errorf("get config file path: %w", err)
+		}
 		if force {
-			fmt.Printf("Overwriting the existing configuration file: %s\n", cmp.Or(v.ConfigFileUsed(), "(config file not found)"))
+			fmt.Printf("Overwriting the existing configuration file: %s\n", cmp.Or(filePath, "(config file not found)"))
 		} else {
-			if v.ConfigFileUsed() != "" {
+			if filePath != "" {
 				fmt.Println("Configuration file already exists.")
-				fmt.Println(v.ConfigFileUsed())
+				fmt.Println(filePath)
 				return nil
 			}
 		}
@@ -76,6 +79,7 @@ func NewInit(initBare *InitBare, initConfig config.Init, v *viper.Viper) *Init {
 		}
 
 		t := term.NewTerminal(os.Stdin, "")
+		values := make(map[string]any, len(prompts))
 		for _, p := range prompts {
 			prompt := p.prompt
 			if p.defaultValue != "" {
@@ -103,17 +107,11 @@ func NewInit(initBare *InitBare, initConfig config.Init, v *viper.Viper) *Init {
 				input = p.defaultValue
 			}
 
-			v.Set(p.configKey, input)
+			values[p.configKey] = input
 		}
 
-		if force {
-			err = v.WriteConfig()
-		} else {
-			err = v.SafeWriteConfig()
-		}
-
-		if err != nil {
-			return fmt.Errorf("failed to write config file: %w", err)
+		if err := cw.Write(force, config.ConfigValues(values)); err != nil {
+			return fmt.Errorf("write config: %w", err)
 		}
 
 		return nil
