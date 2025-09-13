@@ -22,6 +22,7 @@ type Webhook struct {
 var _ config.Webhook = (*Webhook)(nil)
 
 func NewWebhook(v *viper.Viper) *Webhook {
+	v.ReadInConfig()
 	return &Webhook{
 		v: v,
 	}

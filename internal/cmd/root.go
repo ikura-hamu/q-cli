@@ -11,11 +11,9 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/config"
 	"github.com/ikura-hamu/q-cli/internal/message"
-	"github.com/ikura-hamu/q-cli/internal/pkg/types"
 	"github.com/ikura-hamu/q-cli/internal/secret"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -50,8 +48,8 @@ func NewRootBare() *RootBare {
 	}
 }
 
-func NewRoot[Client client.Client](rootCmd *RootBare, fileConf config.File, rootConf config.Root, webhookConf config.Webhook,
-	clientFactory types.Factory[Client], mes message.Message, sec secret.SecretDetector, v *viper.Viper) *Root {
+func NewRoot(rootCmd *RootBare, fileConf config.File, rootConf config.Root,
+	cl client.Client, mes message.Message, sec secret.SecretDetector, v *viper.Viper) *Root {
 
 	rootCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		err := v.ReadInConfig()
@@ -62,11 +60,6 @@ func NewRoot[Client client.Client](rootCmd *RootBare, fileConf config.File, root
 	}
 
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		cl, err := clientFactory()
-		if err != nil {
-			return fmt.Errorf("create client: %w", err)
-		}
-
 		if v, err := rootConf.GetVersion(); err != nil {
 			return fmt.Errorf("failed to get version flag: %w", err)
 		} else if v {
@@ -103,22 +96,9 @@ func NewRoot[Client client.Client](rootCmd *RootBare, fileConf config.File, root
 			return fmt.Errorf("failed to detect secret: %w", err)
 		}
 
-		// TODO: こっちの処理をclientの方でやる
-		channelID := uuid.Nil
 		channelName, err := rootConf.GetChannelName()
 		if err != nil {
 			return fmt.Errorf("get channel name: %w", err)
-		}
-		if channelName.Valid {
-			channels, err := webhookConf.GetChannels()
-			if err != nil {
-				return fmt.Errorf("get channels: %w", err)
-			}
-			var ok bool
-			channelID, ok = channels[channelName.String]
-			if !ok {
-				return fmt.Errorf("channel '%s' is not found: %w", channelName.String, ErrChannelNotFound)
-			}
 		}
 
 		printBeforeSend, err := rootConf.GetPrintBeforeSend()
@@ -136,7 +116,7 @@ func NewRoot[Client client.Client](rootCmd *RootBare, fileConf config.File, root
 			}
 		}
 
-		err = cl.SendMessage(messageStr, channelID)
+		err = cl.SendMessage(messageStr, channelName)
 		if errors.Is(err, client.ErrEmptyMessage) {
 			return errors.New("empty message is not allowed")
 		}

@@ -5,5 +5,6 @@ import (
 )
 
 var (
-	ErrEmptyMessage = errors.New("empty message")
+	ErrEmptyMessage    = errors.New("empty message")
+	ErrChannelNotFound = errors.New("channel not found")
 )

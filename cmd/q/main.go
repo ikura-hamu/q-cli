@@ -9,7 +9,6 @@ import (
 
 	"github.com/ikura-hamu/q-cli/internal/client/webhook"
 	"github.com/ikura-hamu/q-cli/internal/cmd"
-	"github.com/ikura-hamu/q-cli/internal/config"
 	"github.com/ikura-hamu/q-cli/internal/config/file"
 	"github.com/ikura-hamu/q-cli/internal/config/flag"
 	"github.com/ikura-hamu/q-cli/internal/message/impl"
@@ -26,11 +25,15 @@ func main() {
 		os.Exit(1)
 	}
 	confWebhook := file.NewWebhook(v)
-	clientFactory := webhook.NewWebhookClientFactory(func() (config.Webhook, error) { return confWebhook, nil })
+	clientFactory, err := webhook.NewClientFromConfig(confWebhook)
+	if err != nil {
+		fmt.Println("create client:", err)
+		os.Exit(1)
+	}
 	mes := impl.NewMessage()
 	sec := secretImpl.NewSecretDetector()
 
-	rootCmd := cmd.NewRoot(rootBareCmd, confFile, confRoot, confWebhook, clientFactory, mes, sec, v)
+	rootCmd := cmd.NewRoot(rootBareCmd, confFile, confRoot, clientFactory, mes, sec, v)
 
 	initBareCmd := cmd.NewInitBare(rootCmd)
 	confInit := flag.NewInit(initBareCmd)

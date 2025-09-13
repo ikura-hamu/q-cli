@@ -5,20 +5,18 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"hash"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/guregu/null/v6"
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/config"
 )
 
 type WebhookClient struct {
-	mac        hash.Hash
-	client     *http.Client
-	webhookURL string
+	conf config.Webhook
 }
 
 const (
@@ -36,48 +34,45 @@ func NewWebhookClientFactory(confFactory func() (config.Webhook, error)) func() 
 }
 
 func NewClientFromConfig(conf config.Webhook) (*WebhookClient, error) {
-	webhookID, err := conf.GetWebhookID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get webhook ID: %w", err)
-	}
-
-	hostName, err := conf.GetHostName()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get host name: %w", err)
-	}
-
-	secret, err := conf.GetSecret()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get secret: %w", err)
-	}
-
-	return NewWebhookClient(webhookID, hostName, secret)
-}
-
-func NewWebhookClient(webhookID string, hostName string, secret string) (*WebhookClient, error) {
-	mac := hmac.New(sha1.New, []byte(secret))
-
-	client := http.DefaultClient
-
-	webhookURL, err := url.JoinPath(hostName, "/api/v3/webhooks", webhookID)
-	if err != nil {
-		panic(err)
-	}
-	webhookURL += "?embed=true"
-
 	return &WebhookClient{
-		mac:        mac,
-		client:     client,
-		webhookURL: webhookURL,
+		conf: conf,
 	}, nil
 }
 
-func (c *WebhookClient) SendMessage(message string, channelID uuid.UUID) (err error) {
+func (c *WebhookClient) SendMessage(message string, channelName null.String) (err error) {
 	if message == "" {
 		return client.ErrEmptyMessage
 	}
 
-	req, err := http.NewRequest(http.MethodPost, c.webhookURL, strings.NewReader(message))
+	channelID := uuid.Nil
+	if channelName.Valid {
+		channels, err := c.conf.GetChannels()
+		if err != nil {
+			return fmt.Errorf("get channels: %w", err)
+		}
+		var ok bool
+		channelID, ok = channels[channelName.String]
+		if !ok {
+			return fmt.Errorf("channel '%s' is not found: %w", channelName.String, client.ErrChannelNotFound)
+		}
+	}
+
+	webhookID, err := c.conf.GetWebhookID()
+	if err != nil {
+		return fmt.Errorf("get webhook ID: %w", err)
+	}
+
+	webhookURLHost, err := c.conf.GetHostName()
+	if err != nil {
+		return fmt.Errorf("get webhook host: %w", err)
+	}
+	webhookURL, err := url.JoinPath(webhookURLHost, "/api/v3/webhooks/", webhookID)
+	if err != nil {
+		return fmt.Errorf("join webhook URL: %w", err)
+	}
+	webhookURL += "?embed=true"
+
+	req, err := http.NewRequest(http.MethodPost, webhookURL, strings.NewReader(message))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -88,15 +83,21 @@ func (c *WebhookClient) SendMessage(message string, channelID uuid.UUID) (err er
 		req.Header.Set(channelIDHeader, channelID.String())
 	}
 
-	c.mac.Reset()
-	_, err = c.mac.Write([]byte(message))
+	secret, err := c.conf.GetSecret()
+	if err != nil {
+		return fmt.Errorf("get secret: %w", err)
+	}
+
+	mac := hmac.New(sha1.New, []byte(secret))
+
+	_, err = mac.Write([]byte(message))
 	if err != nil {
 		return fmt.Errorf("failed to write message: %w", err)
 	}
-	signature := hex.EncodeToString(c.mac.Sum(nil))
+	signature := hex.EncodeToString(mac.Sum(nil))
 	req.Header.Set("X-TRAQ-Signature", signature)
 
-	res, err := c.client.Do(req)
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
