@@ -16,6 +16,7 @@ import (
 	"github.com/ikura-hamu/q-cli/internal/message"
 	"github.com/ikura-hamu/q-cli/internal/pkg/types"
 	"github.com/ikura-hamu/q-cli/internal/secret"
+	"github.com/ras0q/goalie"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -129,7 +130,10 @@ func NewRoot[Client client.Client](rootCmd *RootBare, fileConf config.File, root
 	}
 }
 
-func checkMessage(message string) (bool, error) {
+func checkMessage(message string) (ok bool, err error) {
+	g := goalie.New()
+	defer g.Collect(&err)
+
 	fmt.Printf(`========Message:========
 %s
 ========================
@@ -139,10 +143,12 @@ func checkMessage(message string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("terminal make raw: %w", err)
 	}
-	defer func() {
-		err := term.Restore(int(os.Stdin.Fd()), oldState)
-		cobra.CheckErr(err)
-	}()
+	defer g.Guard(func() error {
+		if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
+			return fmt.Errorf("terminal restore: %w", err)
+		}
+		return nil
+	})
 
 	t := term.NewTerminal(os.Stdin, "")
 	t.SetPrompt("Send? [y/n(any)]: ")

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/ikura-hamu/q-cli/internal/config"
+	"github.com/ras0q/goalie"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -38,7 +39,10 @@ type Init struct {
 
 // TODO: *viper.Viperじゃなくて設定ファイルに書き込む用の何かinterfaceを渡す
 func NewInit(initBare *InitBare, initConfig config.Init, cw config.FileWriter) *Init {
-	initBare.RunE = func(cmd *cobra.Command, args []string) error {
+	initBare.RunE = func(cmd *cobra.Command, args []string) (err error) {
+		g := goalie.New()
+		defer g.Collect(&err)
+
 		force, err := initConfig.GetForce()
 		if err != nil {
 			return fmt.Errorf("failed to get force flag: %w", err)
@@ -62,10 +66,12 @@ func NewInit(initBare *InitBare, initConfig config.Init, cw config.FileWriter) *
 		if err != nil {
 			return fmt.Errorf("terminal make raw: %w", err)
 		}
-		defer func() {
-			err := term.Restore(int(os.Stdin.Fd()), oldState)
-			cobra.CheckErr(err)
-		}()
+		defer g.Guard(func() error {
+			if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
+				return fmt.Errorf("terminal restore: %w", err)
+			}
+			return nil
+		})
 
 		prompts := []struct {
 			prompt       string

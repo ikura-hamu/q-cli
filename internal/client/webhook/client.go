@@ -13,6 +13,7 @@ import (
 	"github.com/guregu/null/v6"
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/config"
+	"github.com/ras0q/goalie"
 )
 
 type WebhookClient struct {
@@ -40,6 +41,9 @@ func NewClientFromConfig(conf config.Webhook) (*WebhookClient, error) {
 }
 
 func (c *WebhookClient) SendMessage(message string, channelName null.String) (err error) {
+	g := goalie.New()
+	defer g.Collect(&err)
+
 	if message == "" {
 		return client.ErrEmptyMessage
 	}
@@ -101,9 +105,7 @@ func (c *WebhookClient) SendMessage(message string, channelName null.String) (er
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer func() {
-		err = res.Body.Close()
-	}()
+	defer g.Guard(res.Body.Close)
 
 	if res.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("failed to send message: %s", res.Status)
