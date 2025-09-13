@@ -20,6 +20,10 @@ func NewWriter(v *viper.Viper) *Writer {
 }
 
 func (w *Writer) GetUsedFilePath() (string, error) {
+	if err := w.v.ReadInConfig(); err != nil {
+		return "", fmt.Errorf("read config: %w", err)
+	}
+
 	return w.v.ConfigFileUsed(), nil
 }
 
@@ -56,7 +60,9 @@ func NewReader(v *viper.Viper) *Reader {
 }
 
 func (r *Reader) Read() (config.ConfigValues, error) {
-	r.v.AllSettings()
+	if err := r.v.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("read config: %w", err)
+	}
 
 	allSettings := r.v.AllSettings()
 
@@ -64,5 +70,9 @@ func (r *Reader) Read() (config.ConfigValues, error) {
 }
 
 func (r *Reader) GetUsedFilePath() (string, error) {
+	if err := r.v.ReadInConfig(); err != nil {
+		return "", fmt.Errorf("read config: %w", err)
+	}
+
 	return r.v.ConfigFileUsed(), nil
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/config"
 	"github.com/ikura-hamu/q-cli/internal/message"
+	"github.com/ikura-hamu/q-cli/internal/pkg/types"
 	"github.com/ikura-hamu/q-cli/internal/secret"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -47,10 +48,15 @@ func NewRootBare() *RootBare {
 	}
 }
 
-func NewRoot(rootCmd *RootBare, fileConf config.File, rootConf config.Root,
-	cl client.Client, mes message.Message, sec secret.SecretDetector) *Root {
+func NewRoot[Client client.Client](rootCmd *RootBare, fileConf config.File, rootConf config.Root,
+	clFactory types.Factory[Client], mes message.Message, sec secret.SecretDetector) *Root {
 
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cl, err := clFactory()
+		if err != nil {
+			return fmt.Errorf("create client: %w", err)
+		}
+
 		if v, err := rootConf.GetVersion(); err != nil {
 			return fmt.Errorf("failed to get version flag: %w", err)
 		} else if v {

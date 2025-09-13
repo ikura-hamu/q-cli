@@ -21,10 +21,19 @@ type Webhook struct {
 
 var _ config.Webhook = (*Webhook)(nil)
 
-func NewWebhook(v *viper.Viper) *Webhook {
-	v.ReadInConfig()
+func NewWebhook(v *viper.Viper) (*Webhook, error) {
+	err := v.ReadInConfig()
+	if err != nil {
+		return nil, fmt.Errorf("read config: %w", err)
+	}
 	return &Webhook{
 		v: v,
+	}, nil
+}
+
+func NewWebhookFactory(v *viper.Viper) func() (config.Webhook, error) {
+	return func() (config.Webhook, error) {
+		return NewWebhook(v)
 	}
 }
 

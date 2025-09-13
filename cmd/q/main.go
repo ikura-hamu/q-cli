@@ -24,8 +24,8 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	confWebhook := file.NewWebhook(v)
-	clientFactory, err := webhook.NewClientFromConfig(confWebhook)
+	confWebhook := file.NewWebhookFactory(v)
+	clientFactory := webhook.NewWebhookClientFactory(confWebhook)
 	if err != nil {
 		fmt.Println("create client:", err)
 		os.Exit(1)
