@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/client/webhook"
 	"github.com/ikura-hamu/q-cli/internal/cmd"
 	"github.com/ikura-hamu/q-cli/internal/config/file"
 	"github.com/ikura-hamu/q-cli/internal/config/flag"
-	"github.com/ikura-hamu/q-cli/internal/message/impl"
+	"github.com/ikura-hamu/q-cli/internal/interaction/terminal"
 	secretImpl "github.com/ikura-hamu/q-cli/internal/secret/impl"
+	serviceImpl "github.com/ikura-hamu/q-cli/internal/service/impl"
 )
 
 func main() {
@@ -30,10 +32,12 @@ func main() {
 		fmt.Println("create client:", err)
 		os.Exit(1)
 	}
-	mes := impl.NewMessage()
 	sec := secretImpl.NewSecretDetector()
+	termSess := terminal.NewSession()
 
-	rootCmd := cmd.NewRoot(rootBareCmd, confFile, confRoot, clientFactory, mes, sec)
+	mesService := serviceImpl.NewMessage(clientFactory, confRoot, sec, termSess)
+
+	rootCmd := cmd.NewRoot[client.Client](rootBareCmd, confRoot, mesService)
 
 	initBareCmd := cmd.NewInitBare(rootCmd)
 	confInit := flag.NewInit(initBareCmd)

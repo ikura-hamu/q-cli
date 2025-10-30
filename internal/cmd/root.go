@@ -4,21 +4,18 @@ Copyright © 2024 ikura-hamu 104292023+ikura-hamu@users.noreply.github.com
 package cmd
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"runtime/debug"
 	"strings"
 
 	"github.com/ikura-hamu/q-cli/internal/client"
 	"github.com/ikura-hamu/q-cli/internal/config"
-	"github.com/ikura-hamu/q-cli/internal/message"
-	"github.com/ikura-hamu/q-cli/internal/pkg/types"
-	"github.com/ikura-hamu/q-cli/internal/secret"
-	"github.com/ras0q/goalie"
+	"github.com/ikura-hamu/q-cli/internal/domain/values"
+	"github.com/ikura-hamu/q-cli/internal/service"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 var (
@@ -49,17 +46,11 @@ func NewRootBare() *RootBare {
 	}
 }
 
-func NewRoot[Client client.Client](rootCmd *RootBare, fileConf config.File, rootConf config.Root,
-	clFactory types.Factory[Client], mes message.Message, sec secret.SecretDetector) *Root {
+func NewRoot[Client client.Client](rootCmd *RootBare, rootConf config.Root, mes service.Message) *Root {
 
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		cl, err := clFactory()
-		if err != nil {
-			return fmt.Errorf("create client: %w", err)
-		}
-
 		if v, err := rootConf.GetVersion(); err != nil {
-			return fmt.Errorf("failed to get version flag: %w", err)
+			return fmt.Errorf("get version flag: %w", err)
 		} else if v {
 			printVersionInfo()
 			return nil
@@ -67,103 +58,26 @@ func NewRoot[Client client.Client](rootCmd *RootBare, fileConf config.File, root
 
 		ctx := cmd.Context()
 
-		codeBlock, err := rootConf.GetCodeBlock()
-		if err != nil {
-			return fmt.Errorf("get code block: %w", err)
-		}
-
-		codeBlockLang, err := rootConf.GetCodeBlockLang()
-		if err != nil {
-			return fmt.Errorf("get code block lang: %w", err)
-		}
-
-		messageStr, err := mes.BuildMessage(args, message.Option{
-			CodeBlock:     codeBlock,
-			CodeBlockLang: codeBlockLang.String,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to build message: %w", err)
-		}
-
-		err = sec.Detect(ctx, messageStr)
-		if detectMes, ok := secret.SecretDetected(err); ok {
-			fmt.Println(detectMes)
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("failed to detect secret: %w", err)
-		}
-
-		channelName, err := rootConf.GetChannelName()
-		if err != nil {
-			return fmt.Errorf("get channel name: %w", err)
-		}
-
-		printBeforeSend, err := rootConf.GetPrintBeforeSend()
-		if err != nil {
-			return fmt.Errorf("get print before send: %w", err)
-		}
-		if printBeforeSend {
-			ok, err := checkMessage(messageStr)
+		var message values.Message
+		if len(args) > 0 {
+			message = values.Message(strings.Join(args, " "))
+		} else {
+			var err error
+			message, err = scan()
 			if err != nil {
-				return fmt.Errorf("failed to check message: %w", err)
-			}
-			if !ok {
-				fmt.Println("Send canceled.")
-				return nil
+				return fmt.Errorf("scan message: %w", err)
 			}
 		}
 
-		err = cl.SendMessage(messageStr, channelName)
-		if errors.Is(err, client.ErrEmptyMessage) {
-			return errors.New("empty message is not allowed")
+		if err := mes.Send(ctx, message); err != nil {
+			return fmt.Errorf("send message: %w", err)
 		}
-		if err != nil {
-			return fmt.Errorf("failed to send message: %w", err)
-		}
-
 		return nil
 	}
 
 	return &Root{
 		Command: rootCmd.Command,
 	}
-}
-
-func checkMessage(message string) (ok bool, err error) {
-	g := goalie.New()
-	defer g.Collect(&err)
-
-	fmt.Printf(`========Message:========
-%s
-========================
-`, message)
-
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-	if err != nil {
-		return false, fmt.Errorf("terminal make raw: %w", err)
-	}
-	defer g.Guard(func() error {
-		if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
-			return fmt.Errorf("terminal restore: %w", err)
-		}
-		return nil
-	})
-
-	t := term.NewTerminal(os.Stdin, "")
-	t.SetPrompt("Send? [y/n(any)]: ")
-	l, err := t.ReadLine()
-	if errors.Is(err, io.EOF) {
-		return false, nil
-	}
-	if err != nil {
-		return false, fmt.Errorf("terminal read line: %w", err)
-	}
-	if strings.ToLower(l) != "y" {
-		return false, nil
-	}
-
-	return true, nil
 }
 
 var (
@@ -186,4 +100,19 @@ func printVersionInfo() {
 		}
 	}
 	fmt.Printf("q version %s\n", v)
+}
+
+func scan() (values.Message, error) {
+	sc := bufio.NewScanner(os.Stdin)
+	sb := &strings.Builder{}
+	for sc.Scan() {
+		text := sc.Text()
+		sb.WriteString(text + "\n")
+	}
+
+	if err := sc.Err(); err != nil {
+		return "", fmt.Errorf("failed to read from stdin: %w", err)
+	}
+
+	return values.Message(strings.TrimSpace(sb.String())), nil
 }
