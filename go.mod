@@ -4,7 +4,8 @@ go 1.25
 
 require (
 	github.com/guregu/null/v6 v6.0.0
-	github.com/matryer/moq v0.6.0
+	github.com/ikura-hamu/mresult v0.0.0
+	github.com/ovechkin-dm/mockio/v2 v2.0.3
 	github.com/ras0q/goalie v0.5.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
@@ -15,9 +16,9 @@ require (
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
+	github.com/ovechkin-dm/go-dyno v0.5.3 // indirect
+	github.com/petermattis/goid v0.0.0-20250721140440-ea1c0173183e // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	go.uber.org/mock v0.6.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
 )
 
 require (
@@ -35,11 +36,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/tools v0.36.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
-
-tool go.uber.org/mock/mockgen
